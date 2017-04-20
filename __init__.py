@@ -15,11 +15,11 @@
 # You should have received a copy of the GNU General Public License
 # along with Mycroft Core.  If not, see <http://www.gnu.org/licenses/>.
 
+import time
 from threading import Timer
 from uuid import uuid4
 
 from adapt.intent import IntentBuilder
-
 from mycroft.api import DeviceApi
 from mycroft.identity import IdentityManager
 from mycroft.messagebus.message import Message
@@ -31,8 +31,10 @@ class PairingSkill(MycroftSkill):
         super(PairingSkill, self).__init__("PairingSkill")
         self.api = DeviceApi()
         self.data = None
+        self.last_request = None
         self.state = str(uuid4())
         self.delay = 10
+        self.expiration = 72000
         self.activator = None
 
         # TODO: Add translation support
@@ -67,9 +69,10 @@ class PairingSkill(MycroftSkill):
     def handle_pairing(self, message=None):
         if self.is_paired():
             self.speak_dialog("pairing.paired")
-        elif self.data:
+        elif self.data and self.last_request < time.time():
             self.speak_code()
         else:
+            self.last_request = time.time() + self.expiration
             self.data = self.api.get_code(self.state)
             self.enclosure.deactivate_mouth_events()
             self.enclosure.mouth_text(self.data.get("code"))
@@ -85,9 +88,7 @@ class PairingSkill(MycroftSkill):
             IdentityManager.save(login)
             self.emitter.emit(Message("mycroft.paired", login))
         except:
-            self.data["expiration"] -= self.delay
-
-            if self.data.get("expiration") <= 0:
+            if self.last_request < time.time():
                 self.data = None
                 self.handle_pairing()
             else:
