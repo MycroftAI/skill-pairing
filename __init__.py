@@ -34,7 +34,7 @@ class PairingSkill(MycroftSkill):
         self.last_request = None
         self.state = str(uuid4())
         self.delay = 10
-        self.expiration = 72000
+        self.expiration = 72000 # 20 hours
         self.activator = None
 
         # TODO: Add translation support
