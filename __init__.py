@@ -36,6 +36,7 @@ class PairingSkill(MycroftSkill):
         self.delay = 10
         self.expiration = 72000 # 20 hours
         self.activator = None
+        self.repeater = None
 
         # TODO: Add translation support
         self.nato_dict = {'A': "'A' as in Apple", 'B': "'B' as in Bravo",
@@ -79,10 +80,14 @@ class PairingSkill(MycroftSkill):
             self.speak_code()
             self.__create_activator()
 
-    def activate(self):
+    def on_activate(self):
         try:
+            # wait for a signal from the backend that pairing is complete
             token = self.data.get("token")
             login = self.api.activate(self.state, token)
+            if self.repeater:
+                self.repeater.cancel()
+                self.repeater = None
             self.enclosure.activate_mouth_events()
             self.speak_dialog("pairing.paired")
             IdentityManager.save(login)
@@ -95,7 +100,7 @@ class PairingSkill(MycroftSkill):
                 self.__create_activator()
 
     def __create_activator(self):
-        self.activator = Timer(self.delay, self.activate)
+        self.activator = Timer(self.delay, self.on_activate)
         self.activator.daemon = True
         self.activator.start()
 
@@ -111,6 +116,11 @@ class PairingSkill(MycroftSkill):
         self.log.info("Pairing code: " + code)
         data = {"code": '. '.join(map(self.nato_dict.get, code))}
         self.speak_dialog("pairing.code", data)
+        
+        # repeat instructions/code every 60 seconds (start to start)
+        self.repeater = Timer(60, self.speak_code)
+        self.repeater.daemon = True
+        self.repeater.start()
 
     def stop(self):
         pass
