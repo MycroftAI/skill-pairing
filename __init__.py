@@ -24,6 +24,7 @@ from mycroft.api import DeviceApi
 from mycroft.identity import IdentityManager
 from mycroft.messagebus.message import Message
 from mycroft.skills.core import MycroftSkill
+from mycroft.util import is_speaking, stop_speaking
 
 
 class PairingSkill(MycroftSkill):
@@ -34,7 +35,7 @@ class PairingSkill(MycroftSkill):
         self.last_request = None
         self.state = str(uuid4())
         self.delay = 10
-        self.expiration = 72000 # 20 hours
+        self.expiration = 72000  # 20 hours
         self.activator = None
         self.repeater = None
 
@@ -85,9 +86,16 @@ class PairingSkill(MycroftSkill):
             # wait for a signal from the backend that pairing is complete
             token = self.data.get("token")
             login = self.api.activate(self.state, token)
+
+            # shut down thread that repeats the code to the user
             if self.repeater:
                 self.repeater.cancel()
                 self.repeater = None
+
+            if is_speaking():
+                # Assume speaking is the pairing code.  Stop TTS
+                stop_speaking()
+
             self.enclosure.activate_mouth_events()
             self.speak_dialog("pairing.paired")
             IdentityManager.save(login)
@@ -116,7 +124,7 @@ class PairingSkill(MycroftSkill):
         self.log.info("Pairing code: " + code)
         data = {"code": '. '.join(map(self.nato_dict.get, code))}
         self.speak_dialog("pairing.code", data)
-        
+
         # repeat instructions/code every 60 seconds (start to start)
         self.repeater = Timer(60, self.speak_code)
         self.repeater.daemon = True
