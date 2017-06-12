@@ -80,7 +80,8 @@ class PairingSkill(MycroftSkill):
             self.enclosure.deactivate_mouth_events()  # keeps code on the display
             self.enclosure.mouth_text(self.data.get("code"))
             self.speak_code()
-            self.__create_activator()
+            if not self.activator:
+                self.__create_activator()
 
     def on_activate(self):
         try:
@@ -138,13 +139,28 @@ class PairingSkill(MycroftSkill):
         return device is not None
 
     def speak_code(self):
+        """ speak code and start repeating it every 60 second. """
+        if self.repeater:
+            self.repeater.cancel()
+            self.repeater = None
+
+        self.__speak_code()
+        self.repeater = Timer(60, self.__repeat_code)
+        self.repeater.daemon = True
+        self.repeater.start()
+
+    def __speak_code(self):
+        """ Speak code. """
         code = self.data.get("code")
         self.log.info("Pairing code: " + code)
         data = {"code": '. '.join(map(self.nato_dict.get, code))}
         self.speak_dialog("pairing.code", data)
 
+    def __repeat_code(self):
+        """ Timer function to repeat the code every 60 second. """
         # repeat instructions/code every 60 seconds (start to start)
-        self.repeater = Timer(60, self.speak_code)
+        self.__speak_code()
+        self.repeater = Timer(60, self.__repeat_code)
         self.repeater.daemon = True
         self.repeater.start()
 
