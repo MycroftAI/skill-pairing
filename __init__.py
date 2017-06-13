@@ -158,6 +158,9 @@ class PairingSkill(MycroftSkill):
 
     def __repeat_code(self):
         """ Timer function to repeat the code every 60 second. """
+        # if pairing is complete terminate the thread
+        if self.is_paired():
+            return
         # repeat instructions/code every 60 seconds (start to start)
         self.__speak_code()
         self.repeater = Timer(60, self.__repeat_code)
