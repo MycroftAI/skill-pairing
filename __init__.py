@@ -24,6 +24,8 @@ from mycroft.api import DeviceApi
 from mycroft.identity import IdentityManager
 from mycroft.messagebus.message import Message
 from mycroft.skills.core import MycroftSkill
+import mycroft.util
+
 
 
 class PairingSkill(MycroftSkill):
@@ -34,7 +36,7 @@ class PairingSkill(MycroftSkill):
         self.last_request = None
         self.state = str(uuid4())
         self.delay = 10
-        self.expiration = 72000 # 20 hours
+        self.expiration = 72000  # 20 hours
         self.activator = None
         self.repeater = None
 
@@ -85,9 +87,25 @@ class PairingSkill(MycroftSkill):
             # wait for a signal from the backend that pairing is complete
             token = self.data.get("token")
             login = self.api.activate(self.state, token)
+
+            # shut down thread that repeats the code to the user
             if self.repeater:
                 self.repeater.cancel()
                 self.repeater = None
+
+            # is_speaking() and stop_speaking() support is mycroft-core 0.8.16+
+            try:
+                if mycroft.util.is_speaking():
+                    # Assume speaking is the pairing code.  Stop TTS
+                    mycroft.util.stop_speaking()
+            except:
+                pass
+
+            # Un-mute.  Would have been muted during onboarding for a new
+            # unit, and not dangerous to do if pairing was started
+            # independently.
+            self.emitter.emit(Message("mycroft.mic.unmute", None))
+
             self.enclosure.activate_mouth_events()
             self.speak_dialog("pairing.paired")
             IdentityManager.save(login)
@@ -106,7 +124,7 @@ class PairingSkill(MycroftSkill):
 
     def is_paired(self):
         try:
-            device = self.api.find()
+            device = self.api.get()
         except:
             device = None
         return device is not None
@@ -116,7 +134,7 @@ class PairingSkill(MycroftSkill):
         self.log.info("Pairing code: " + code)
         data = {"code": '. '.join(map(self.nato_dict.get, code))}
         self.speak_dialog("pairing.code", data)
-        
+
         # repeat instructions/code every 60 seconds (start to start)
         self.repeater = Timer(60, self.speak_code)
         self.repeater.daemon = True
