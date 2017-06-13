@@ -24,7 +24,8 @@ from mycroft.api import DeviceApi
 from mycroft.identity import IdentityManager
 from mycroft.messagebus.message import Message
 from mycroft.skills.core import MycroftSkill
-from mycroft.util import is_speaking, stop_speaking
+import mycroft.util
+
 
 
 class PairingSkill(MycroftSkill):
@@ -92,9 +93,18 @@ class PairingSkill(MycroftSkill):
                 self.repeater.cancel()
                 self.repeater = None
 
-            if is_speaking():
-                # Assume speaking is the pairing code.  Stop TTS
-                stop_speaking()
+            # is_speaking() and stop_speaking() support is mycroft-core 0.8.16+
+            try:
+                if mycroft.util.is_speaking():
+                    # Assume speaking is the pairing code.  Stop TTS
+                    mycroft.util.stop_speaking()
+            except:
+                pass
+
+            # Un-mute.  Would have been muted during onboarding for a new
+            # unit, and not dangerous to do if pairing was started
+            # independently.
+            self.emitter.emit(Message("mycroft.mic.unmute", None))
 
             self.enclosure.activate_mouth_events()
             self.speak_dialog("pairing.paired")
@@ -114,7 +124,7 @@ class PairingSkill(MycroftSkill):
 
     def is_paired(self):
         try:
-            device = self.api.find()
+            device = self.api.get()
         except:
             device = None
         return device is not None
