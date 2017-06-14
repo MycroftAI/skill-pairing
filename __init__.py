@@ -77,7 +77,7 @@ class PairingSkill(MycroftSkill):
         else:
             self.last_request = time.time() + self.expiration
             self.data = self.api.get_code(self.state)
-            self.enclosure.deactivate_mouth_events()
+            self.enclosure.deactivate_mouth_events()  # keeps code on the display
             self.enclosure.mouth_text(self.data.get("code"))
             self.speak_code()
             self.__create_activator()
@@ -101,15 +101,23 @@ class PairingSkill(MycroftSkill):
             except:
                 pass
 
+            self.enclosure.activate_mouth_events()  # clears the display
+            self.speak_dialog("pairing.paired")
+            
+            # wait_while_speaking() support is mycroft-core 0.8.16+
+            try:
+                mycroft.util.wait_while_speaking()
+            except:
+                pass
+
+            IdentityManager.save(login)
+            self.emitter.emit(Message("mycroft.paired", login))
+
             # Un-mute.  Would have been muted during onboarding for a new
             # unit, and not dangerous to do if pairing was started
             # independently.
             self.emitter.emit(Message("mycroft.mic.unmute", None))
 
-            self.enclosure.activate_mouth_events()
-            self.speak_dialog("pairing.paired")
-            IdentityManager.save(login)
-            self.emitter.emit(Message("mycroft.paired", login))
         except:
             if self.last_request < time.time():
                 self.data = None
