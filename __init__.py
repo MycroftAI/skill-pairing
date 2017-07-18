@@ -27,7 +27,6 @@ from mycroft.skills.core import MycroftSkill
 import mycroft.util
 
 
-
 class PairingSkill(MycroftSkill):
     def __init__(self):
         super(PairingSkill, self).__init__("PairingSkill")
@@ -77,7 +76,8 @@ class PairingSkill(MycroftSkill):
         else:
             self.last_request = time.time() + self.expiration
             self.data = self.api.get_code(self.state)
-            self.enclosure.deactivate_mouth_events()  # keeps code on the display
+            # keeps code on the display
+            self.enclosure.deactivate_mouth_events()
             self.enclosure.mouth_text(self.data.get("code"))
             self.speak_code()
             self.__create_activator()
@@ -103,7 +103,7 @@ class PairingSkill(MycroftSkill):
 
             self.enclosure.activate_mouth_events()  # clears the display
             self.speak_dialog("pairing.paired")
-            
+
             # wait_while_speaking() support is mycroft-core 0.8.16+
             try:
                 mycroft.util.wait_while_speaking()
@@ -143,6 +143,11 @@ class PairingSkill(MycroftSkill):
         data = {"code": '. '.join(map(self.nato_dict.get, code))}
         self.speak_dialog("pairing.code", data)
 
+        # shuts down any repeater threads that are currently still running
+        if self.repeater:
+            self.repeater.cancel()
+            self.repeater = None
+
         # repeat instructions/code every 60 seconds (start to start)
         self.repeater = Timer(60, self.speak_code)
         self.repeater.daemon = True
@@ -155,6 +160,8 @@ class PairingSkill(MycroftSkill):
         super(PairingSkill, self).shutdown()
         if self.activator:
             self.activator.cancel()
+        if self.repeater:
+            self.repeater.cancel()
 
 
 def create_skill():
