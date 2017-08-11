@@ -78,7 +78,6 @@ class PairingSkill(MycroftSkill):
             self.last_request = time.time() + self.expiration
             self.data = self.api.get_code(self.state)
             self.enclosure.deactivate_mouth_events()  # keeps code on the display
-            self.enclosure.mouth_text(self.data.get("code"))
             self.speak_code()
             if not self.activator:
                 self.__create_activator()
@@ -154,6 +153,7 @@ class PairingSkill(MycroftSkill):
         code = self.data.get("code")
         self.log.info("Pairing code: " + code)
         data = {"code": '. '.join(map(self.nato_dict.get, code))}
+        self.enclosure.mouth_text(self.data.get("code"))
         self.speak_dialog("pairing.code", data)
 
     def __repeat_code(self):
