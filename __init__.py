@@ -63,7 +63,7 @@ class PairingSkill(MycroftSkill):
         intent = IntentBuilder("PairingIntent") \
             .require("PairingKeyword").require("DeviceKeyword").build()
         self.register_intent(intent, self.handle_pairing)
-        self.emitter.on("mycroft.not.paired", self.not_paired)
+        self.add_event("mycroft.not.paired", self.not_paired)
 
     def not_paired(self, message):
         self.speak_dialog("pairing.not.paired")
@@ -175,8 +175,12 @@ class PairingSkill(MycroftSkill):
         super(PairingSkill, self).shutdown()
         if self.activator:
             self.activator.cancel()
+            if self.activator.isAlive():
+                self.activator.join()
         if self.repeater:
             self.repeater.cancel()
+            if self.repeater.isAlive():
+                self.repeater.join()
 
 
 def create_skill():
