@@ -27,7 +27,6 @@ from mycroft.skills.core import MycroftSkill
 import mycroft.util
 
 
-
 class PairingSkill(MycroftSkill):
     def __init__(self):
         super(PairingSkill, self).__init__("PairingSkill")
@@ -77,7 +76,7 @@ class PairingSkill(MycroftSkill):
         else:
             self.last_request = time.time() + self.expiration
             self.data = self.api.get_code(self.state)
-            self.enclosure.deactivate_mouth_events()  # keeps code on the display
+            self.enclosure.deactivate_mouth_events() # keeps code on the display
             self.speak_code()
             if not self.activator:
                 self.__create_activator()
@@ -160,6 +159,7 @@ class PairingSkill(MycroftSkill):
         """ Timer function to repeat the code every 60 second. """
         # if pairing is complete terminate the thread
         if self.is_paired():
+            self.repeater = None
             return
         # repeat instructions/code every 60 seconds (start to start)
         self.__speak_code()
@@ -174,6 +174,8 @@ class PairingSkill(MycroftSkill):
         super(PairingSkill, self).shutdown()
         if self.activator:
             self.activator.cancel()
+        if self.repeater:
+            self.repeater.cancel()
 
 
 def create_skill():
