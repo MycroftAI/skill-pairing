@@ -79,6 +79,7 @@ class PairingSkill(MycroftSkill):
             try:
                 self.data = self.api.get_code(self.state)
             except ConnectionError:
+                self.speak_dialog('connection.error')
                 self.emitter.emit(Message("mycroft.mic.unmute", None))
                 return
 
