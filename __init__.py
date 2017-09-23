@@ -18,6 +18,7 @@
 import time
 from threading import Timer, Lock
 from uuid import uuid4
+from requests import ConnectionError
 
 from adapt.intent import IntentBuilder
 from mycroft.api import DeviceApi
@@ -79,9 +80,16 @@ class PairingSkill(MycroftSkill):
             self.speak_dialog("pairing.paired")
         elif not self.data:
             self.last_request = time.time() + self.expiration
-            self.data = self.api.get_code(self.state)
-            # keeps code on the display
+            try:
+                self.data = self.api.get_code(self.state)
+            except ConnectionError:
+                self.speak_dialog('connection.error')
+                self.emitter.emit(Message("mycroft.mic.unmute", None))
+                return
+
+            # Make sure code stays on display
             self.enclosure.deactivate_mouth_events()
+
             if not self.activator:
                 self.__create_activator()
 
