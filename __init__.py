@@ -37,7 +37,9 @@ class PairingSkill(MycroftSkill):
         self.delay = 10
         self.expiration = 72000  # 20 hours
         self.activator = None
-        self.lock = Lock()
+        self.activator_lock = Lock()
+        self.activator_cancelled = False
+        self.counter_lock = Lock()
         self.count = 0  # Counter for when to repeat the code
 
         # TODO: Add translation support
@@ -70,7 +72,7 @@ class PairingSkill(MycroftSkill):
         self.handle_pairing()
 
     def handle_pairing(self, message=None):
-        with self.lock:
+        with self.counter_lock:
             self.counter = 0
 
         if self.is_paired():
@@ -121,7 +123,7 @@ class PairingSkill(MycroftSkill):
 
         except:
             # speak pairing code every 60th second
-            with self.lock:
+            with self.counter_lock:
                 if self.count == 0:
                     self.speak_code()
                 self.count = (self.count + 1) % 6
@@ -133,9 +135,11 @@ class PairingSkill(MycroftSkill):
                 self.__create_activator()
 
     def __create_activator(self):
-        self.activator = Timer(self.delay, self.on_activate)
-        self.activator.daemon = True
-        self.activator.start()
+        with self.activator_lock:
+            if not self.activator_cancelled:
+                self.activator = Timer(self.delay, self.on_activate)
+                self.activator.daemon = True
+                self.activator.start()
 
     def is_paired(self):
         """ Determine if pairing process has completed. """
@@ -158,9 +162,12 @@ class PairingSkill(MycroftSkill):
 
     def shutdown(self):
         super(PairingSkill, self).shutdown()
+        with self.activator_lock:
+            self.activator_cancelled = True
+            if self.activator:
+                self.activator.cancel()
         if self.activator:
-            self.activator.cancel()
-
+            self.activator.join()
 
 def create_skill():
     return PairingSkill()
