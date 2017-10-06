@@ -73,7 +73,7 @@ class PairingSkill(MycroftSkill):
             self.speak_dialog("pairing.paired")
         elif self.data and self.last_request < time.time():
             self.speak_code()
-        else:
+        elif not self.data:
             self.last_request = time.time() + self.expiration
             self.data = self.api.get_code(self.state)
             self.enclosure.deactivate_mouth_events() # keeps code on the display
