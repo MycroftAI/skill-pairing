@@ -129,6 +129,8 @@ class PairingSkill(MycroftSkill):
             # independently.
             self.emitter.emit(Message("mycroft.mic.unmute", None))
 
+            # Send signal to update configuration
+            self.emitter.emit(Message("configuration.updated"))
         except:
             # speak pairing code every 60th second
             with self.counter_lock:
