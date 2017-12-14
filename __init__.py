@@ -32,7 +32,7 @@ class PairingSkill(MycroftSkill):
         self.data = None
         self.last_request = None
         self.state = str(uuid4())
-        self.delay = 10
+        self.delay = 10  # poll time used in checking server for activation
         self.expiration = 72000  # 20 hours
         self.activator = None
         self.activator_lock = Lock()
@@ -76,6 +76,9 @@ class PairingSkill(MycroftSkill):
         if self.is_paired():
             self.speak_dialog("pairing.paired")
         elif not self.data:
+            # Prevent auto-update during the pairing process
+            self.reload_skill = False
+
             self.last_request = time.time() + self.expiration
             try:
                 self.data = self.api.get_code(self.state)
@@ -83,6 +86,24 @@ class PairingSkill(MycroftSkill):
                 self.speak_dialog('connection.error')
                 self.emitter.emit(Message("mycroft.mic.unmute", None))
                 return
+
+            # wait_while_speaking() support is mycroft-core 0.8.16+
+            try:
+                # This will make sure the user is in 0.8.16+ before continuing
+                mycroft.util.wait_while_speaking()
+
+                self.speak_dialog("pairing.intro")
+
+                # HACK this gives the Mark 1 time to scroll the address, the
+                # mouth_text() really should take an optional parameter to
+                # not scroll.
+                self.enclosure.mouth_text("home.mycroft.ai      ")
+                time.sleep(7)
+                mycroft.util.wait_while_speaking()
+
+                # Give user time to open browser and get to the website before talking more
+            except:
+                pass
 
             # Make sure code stays on display
             self.enclosure.deactivate_mouth_events()
@@ -128,6 +149,9 @@ class PairingSkill(MycroftSkill):
 
             # Send signal to update configuration
             self.emitter.emit(Message("configuration.updated"))
+
+            # Allow this skill to auto-update again
+            self.reload_skill = True
         except:
             # speak pairing code every 60th second
             with self.counter_lock:
