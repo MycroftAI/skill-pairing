@@ -87,6 +87,9 @@ class PairingSkill(MycroftSkill):
                 self.emitter.emit(Message("mycroft.mic.unmute", None))
                 return
 
+            # Make sure code stays on display
+            self.enclosure.deactivate_mouth_events()
+
             # wait_while_speaking() support is mycroft-core 0.8.16+
             try:
                 # This will make sure the user is in 0.8.16+ before continuing
@@ -103,9 +106,6 @@ class PairingSkill(MycroftSkill):
                 mycroft.util.wait_while_speaking()
             except:
                 pass
-
-            # Make sure code stays on display
-            self.enclosure.deactivate_mouth_events()
 
             if not self.activator:
                 self.__create_activator()
@@ -184,6 +184,9 @@ class PairingSkill(MycroftSkill):
         code = self.data.get("code")
         self.log.info("Pairing code: " + code)
         data = {"code": '. '.join(map(self.nato_dict.get, code))}
+        
+        # Make sure code stays on display
+        self.enclosure.deactivate_mouth_events()
         self.enclosure.mouth_text(self.data.get("code"))
         self.speak_dialog("pairing.code", data)
 
