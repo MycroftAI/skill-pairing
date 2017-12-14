@@ -94,14 +94,13 @@ class PairingSkill(MycroftSkill):
 
                 self.speak_dialog("pairing.intro")
 
-                # HACK this gives the Mark 1 time to scroll the address, the
-                # mouth_text() really should take an optional parameter to
-                # not scroll.
+                # HACK this gives the Mark 1 time to scroll the address and
+                # the user time to browse to the website.
+                # TODO: mouth_text() really should take an optional parameter
+                # to not scroll a second time.
                 self.enclosure.mouth_text("home.mycroft.ai      ")
                 time.sleep(7)
                 mycroft.util.wait_while_speaking()
-
-                # Give user time to open browser and get to the website before talking more
             except:
                 pass
 
@@ -196,6 +195,7 @@ class PairingSkill(MycroftSkill):
                 self.activator.cancel()
         if self.activator:
             self.activator.join()
+
 
 def create_skill():
     return PairingSkill()
