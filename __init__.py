@@ -102,7 +102,8 @@ class PairingSkill(MycroftSkill):
                 self.log.debug("Failed to get pairing code: " + repr(e))
                 self.speak_dialog('connection.error')
                 self.emitter.emit(Message("mycroft.mic.unmute", None))
-                self.count = -1
+                with self.counter_lock:
+                    self.count = -1
                 return
 
             # wait_while_speaking() support is mycroft-core 0.8.16+
@@ -214,7 +215,8 @@ class PairingSkill(MycroftSkill):
         self.enclosure.activate_mouth_events()
         self.speak_dialog("unexpected.error.restarting")
         self.emitter.emit(Message("mycroft.not.paired", login))
-        self.count = -1
+        with self.counter_lock:
+            self.count = -1
         self.activator = None
 
     def __create_activator(self):
