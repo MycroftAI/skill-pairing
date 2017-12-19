@@ -78,13 +78,15 @@ class PairingSkill(MycroftSkill):
         if self.is_paired():
             # Already paired!  Just tell user
             self.speak_dialog("pairing.paired")
-        elif self.count > -1:
-            # We snuck in to this handler somehow while the pairing process
-            # is still being setup.  Ignore it.
-            self.log.debug("Ignoring call to handle_pairing")
         elif not self.data:
-            # Not paired or already pairing, so start the process.
+            # Kick off pairing...
             with self.counter_lock:
+                if self.count > -1:
+                    # We snuck in to this handler somehow while the pairing process
+                    # is still being setup.  Ignore it.
+                    self.log.debug("Ignoring call to handle_pairing")
+                    return
+                # Not paired or already pairing, so start the process.
                 self.count = 0
             self.reload_skill = False  # Prevent restart during the process
 
@@ -101,6 +103,7 @@ class PairingSkill(MycroftSkill):
                 self.log.debug("Failed to get pairing code")
                 self.speak_dialog('connection.error')
                 self.emitter.emit(Message("mycroft.mic.unmute", None))
+                self.count = -1
                 return
 
             # wait_while_speaking() support is mycroft-core 0.8.16+
@@ -212,7 +215,6 @@ class PairingSkill(MycroftSkill):
         self.emitter.emit(Message("mycroft.not.paired", login))
         self.count = -1
         self.activator = None
-
 
     def __create_activator(self):
         # Create a timer that will poll the backend in 10 seconds to see
