@@ -15,8 +15,7 @@
 import time
 from threading import Timer, Lock
 from uuid import uuid4
-from requests import ConnectionError
-
+from requests import HTTPError
 from adapt.intent import IntentBuilder
 from mycroft.api import DeviceApi
 from mycroft.identity import IdentityManager
@@ -99,14 +98,16 @@ class PairingSkill(MycroftSkill):
                 # Keep track of when the code was obtained.  The codes expire
                 # after 20 hours.
                 self.time_code_expires = time.time() + 72000  # 20 hours
-            except ConnectionError:
-                self.log.debug("Failed to get pairing code")
+            except Exception as e:
+                self.log.debug("Failed to get pairing code: " + repr(e))
                 self.speak_dialog('connection.error')
                 self.emitter.emit(Message("mycroft.mic.unmute", None))
                 self.count = -1
                 return
 
             # wait_while_speaking() support is mycroft-core 0.8.16+
+            # TODO:18.02 - Remove this try/catch and migrate to the preferred
+            # mycroft.audio.wait_while_speaking
             try:
                 # This will make sure the user is in 0.8.16+ before continuing
                 # so a < 0.8.16 system will skip writing the URL to the mouth
