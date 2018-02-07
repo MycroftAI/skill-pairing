@@ -1,13 +1,14 @@
-## pairing skill
-Pairs the mycroft device to home.mycroft.ai
+## Pairing
+Connect your device to the Mycroft server
 
 ## Description 
-Pairs the mycroft device to home.mycroft.ai and gives you a code used to add the device at home.mycroft.ai
+The default backend to provide services for Mycroft users is
+[Home](https://home.mycroft.ai/).  Pairing a device with Home provides access
+to privacy-protecting Speech to Text, Wolfram Alpha and other such services,
+as well as easy configuration for all your Mycroft devices.
 
 ## Examples 
-* "pair my device"
-* "register my device"
-* "pair my unit"
+* "Pair my device" (happens automatically on first run if not paired already)
 
 ## Credits 
-MycroftAI
+Mycroft AI

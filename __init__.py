@@ -1,25 +1,21 @@
-# Copyright 2016 Mycroft AI, Inc.
+# Copyright 2017 Mycroft AI Inc.
 #
-# This file is part of Mycroft Core.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# Mycroft Core is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+#    http://www.apache.org/licenses/LICENSE-2.0
 #
-# Mycroft Core is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #
-# You should have received a copy of the GNU General Public License
-# along with Mycroft Core.  If not, see <http://www.gnu.org/licenses/>.
-
 import time
 from threading import Timer, Lock
 from uuid import uuid4
-from requests import ConnectionError
-
+from requests import HTTPError
 from adapt.intent import IntentBuilder
 from mycroft.api import DeviceApi
 from mycroft.identity import IdentityManager
@@ -29,21 +25,25 @@ import mycroft.util
 
 
 class PairingSkill(MycroftSkill):
+
+    poll_frequency = 10  # secs between checking server for activation
+    
     def __init__(self):
         super(PairingSkill, self).__init__("PairingSkill")
         self.api = DeviceApi()
         self.data = None
-        self.last_request = None
+        self.time_code_expires = None
         self.state = str(uuid4())
-        self.delay = 10
-        self.expiration = 72000  # 20 hours
         self.activator = None
         self.activator_lock = Lock()
         self.activator_cancelled = False
-        self.counter_lock = Lock()
-        self.count = 0  # Counter for when to repeat the code
 
-        # TODO: Add translation support
+        self.counter_lock = Lock()
+        self.count = -1  # for repeating pairing code. -1 = not running
+
+        # TODO:18.02 Add translation support
+        # Can't change before then for fear of breaking really old mycroft-core
+        # instances that just came up on wifi and haven't upgraded code yet.
         self.nato_dict = {'A': "'A' as in Apple", 'B': "'B' as in Bravo",
                           'C': "'C' as in Charlie", 'D': "'D' as in Delta",
                           'E': "'E' as in Echo", 'F': "'F' as in Fox trot",
@@ -63,6 +63,7 @@ class PairingSkill(MycroftSkill):
                           '0': 'Zero'}
 
     def initialize(self):
+        # TODO:18.02 - use decorator
         intent = IntentBuilder("PairingIntent") \
             .require("PairingKeyword").require("DeviceKeyword").build()
         self.register_intent(intent, self.handle_pairing)
@@ -73,55 +74,109 @@ class PairingSkill(MycroftSkill):
         self.handle_pairing()
 
     def handle_pairing(self, message=None):
-        with self.counter_lock:
-            self.counter = 0
-
         if self.is_paired():
+            # Already paired!  Just tell user
             self.speak_dialog("pairing.paired")
         elif not self.data:
-            self.last_request = time.time() + self.expiration
+            # Kick off pairing...
+            with self.counter_lock:
+                if self.count > -1:
+                    # We snuck in to this handler somehow while the pairing process
+                    # is still being setup.  Ignore it.
+                    self.log.debug("Ignoring call to handle_pairing")
+                    return
+                # Not paired or already pairing, so start the process.
+                self.count = 0
+            self.reload_skill = False  # Prevent restart during the process
+
+            self.log.debug("Kicking off pairing sequence")
+
             try:
+                # Obtain a pairing code from the backend
                 self.data = self.api.get_code(self.state)
-            except ConnectionError:
+                
+                # Keep track of when the code was obtained.  The codes expire
+                # after 20 hours.
+                self.time_code_expires = time.time() + 72000  # 20 hours
+            except Exception as e:
+                self.log.debug("Failed to get pairing code: " + repr(e))
                 self.speak_dialog('connection.error')
                 self.emitter.emit(Message("mycroft.mic.unmute", None))
+                with self.counter_lock:
+                    self.count = -1
                 return
 
-            # Make sure code stays on display
-            self.enclosure.deactivate_mouth_events()
+            # wait_while_speaking() support is mycroft-core 0.8.16+
+            # TODO:18.02 - Remove this try/catch and migrate to the preferred
+            # mycroft.audio.wait_while_speaking
+            try:
+                # This will make sure the user is in 0.8.16+ before continuing
+                # so a < 0.8.16 system will skip writing the URL to the mouth
+                mycroft.util.wait_while_speaking()
+
+                self.speak_dialog("pairing.intro")
+
+                self.enclosure.deactivate_mouth_events()
+                self.enclosure.mouth_text("home.mycroft.ai      ")
+                # HACK this gives the Mark 1 time to scroll the address and
+                # the user time to browse to the website.
+                # TODO: mouth_text() really should take an optional parameter
+                # to not scroll a second time.
+                time.sleep(7)
+                mycroft.util.wait_while_speaking()
+            except:
+                pass
 
             if not self.activator:
                 self.__create_activator()
 
-    def on_activate(self):
+    def check_for_activate(self):
         """
-            Function used by Timer. Checks if user has activated the device
-            on home.mycroft.ai and if not repeats the pairing code every
-            60 second.
+            Function called ever 10 seconds by Timer. Checks if user has
+            activated the device yet on home.mycroft.ai and if not repeats
+            the pairing code every 60 seconds.
         """
         try:
-            # wait for a signal from the backend that pairing is complete
+            # Attempt to activate.  If the user has completed pairing on the,
+            # backend, this will succeed.  Otherwise it throws and HTTPError()
             token = self.data.get("token")
-            login = self.api.activate(self.state, token)
+            login = self.api.activate(self.state, token)  # HTTPError() thrown
+
+            # When we get here, the pairing code has been entered on the
+            # backend and pairing can now be saved.
+            # The following is kinda ugly, but it is really critical that we get
+            # this saved successfully or we need to let the user know that they
+            # have to perform pairing all over again at the website.
+            try:
+                IdentityManager.save(login)
+            except Exception as e:
+                self.log.debug("First save attempt failed: " + repr(e))
+                time.sleep(2)
+                try:
+                    IdentityManager.save(login)
+                except Exception as e2:
+                    # Something must be seriously wrong
+                    self.log.debug("Second save attempt failed: " + repr(e2))
+                    self.abort_and_restart()
 
             # is_speaking() and stop_speaking() support is mycroft-core 0.8.16+
             try:
                 if mycroft.util.is_speaking():
-                    # Assume speaking is the pairing code.  Stop TTS
+                    # Assume speaking is the pairing code.  Stop TTS of that.
                     mycroft.util.stop_speaking()
             except:
                 pass
 
             self.enclosure.activate_mouth_events()  # clears the display
+            
+            # Tell user they are now paired
             self.speak_dialog("pairing.paired")
-
-            # wait_while_speaking() support is mycroft-core 0.8.16+
             try:
                 mycroft.util.wait_while_speaking()
             except:
                 pass
 
-            IdentityManager.save(login)
+            # Notify the system it is paired and ready
             self.emitter.emit(Message("mycroft.paired", login))
 
             # Un-mute.  Would have been muted during onboarding for a new
@@ -131,23 +186,46 @@ class PairingSkill(MycroftSkill):
 
             # Send signal to update configuration
             self.emitter.emit(Message("configuration.updated"))
-        except:
+
+            # Allow this skill to auto-update again
+            self.reload_skill = True
+        except HTTPError:
             # speak pairing code every 60th second
             with self.counter_lock:
                 if self.count == 0:
                     self.speak_code()
                 self.count = (self.count + 1) % 6
 
-            if self.last_request < time.time():
+            if time.time() > self.time_code_expires:
+                # After 20 hours the token times out.  Restart
+                # the pairing process.
+                with self.counter_lock:
+                    self.count = -1
                 self.data = None
                 self.handle_pairing()
             else:
+                # trigger another check in 10 seconds
                 self.__create_activator()
+        except Exception as e:
+            self.log.debug("Unexpected error: " + repr(e))
+            self.abort_and_restart()
+            
+    def abort_and_restart(self):
+        # restart pairing sequence
+        self.enclosure.activate_mouth_events()
+        self.speak_dialog("unexpected.error.restarting")
+        self.emitter.emit(Message("mycroft.not.paired", login))
+        with self.counter_lock:
+            self.count = -1
+        self.activator = None
 
     def __create_activator(self):
+        # Create a timer that will poll the backend in 10 seconds to see
+        # if the user has completed the device registration process
         with self.activator_lock:
             if not self.activator_cancelled:
-                self.activator = Timer(self.delay, self.on_activate)
+                self.activator = Timer(PairingSkill.poll_frequency,
+                                       self.check_for_activate)
                 self.activator.daemon = True
                 self.activator.start()
 
@@ -164,11 +242,11 @@ class PairingSkill(MycroftSkill):
         code = self.data.get("code")
         self.log.info("Pairing code: " + code)
         data = {"code": '. '.join(map(self.nato_dict.get, code))}
+        
+        # Make sure code stays on display
+        self.enclosure.deactivate_mouth_events()
         self.enclosure.mouth_text(self.data.get("code"))
         self.speak_dialog("pairing.code", data)
-
-    def stop(self):
-        pass
 
     def shutdown(self):
         super(PairingSkill, self).shutdown()
@@ -178,6 +256,7 @@ class PairingSkill(MycroftSkill):
                 self.activator.cancel()
         if self.activator:
             self.activator.join()
+
 
 def create_skill():
     return PairingSkill()
