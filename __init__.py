@@ -214,7 +214,7 @@ class PairingSkill(MycroftSkill):
         # restart pairing sequence
         self.enclosure.activate_mouth_events()
         self.speak_dialog("unexpected.error.restarting")
-        self.emitter.emit(Message("mycroft.not.paired", login))
+        self.emitter.emit(Message("mycroft.not.paired"))
         with self.counter_lock:
             self.count = -1
         self.activator = None
