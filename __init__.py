@@ -41,26 +41,7 @@ class PairingSkill(MycroftSkill):
         self.counter_lock = Lock()
         self.count = -1  # for repeating pairing code. -1 = not running
 
-        # TODO:18.02 Add translation support
-        # Can't change before then for fear of breaking really old mycroft-core
-        # instances that just came up on wifi and haven't upgraded code yet.
-        self.nato_dict = {'A': "'A' as in Apple", 'B': "'B' as in Bravo",
-                          'C': "'C' as in Charlie", 'D': "'D' as in Delta",
-                          'E': "'E' as in Echo", 'F': "'F' as in Fox trot",
-                          'G': "'G' as in Golf", 'H': "'H' as in Hotel",
-                          'I': "'I' as in India", 'J': "'J' as in Juliet",
-                          'K': "'K' as in Kilogram", 'L': "'L' as in London",
-                          'M': "'M' as in Mike", 'N': "'N' as in November",
-                          'O': "'O' as in Oscar", 'P': "'P' as in Paul",
-                          'Q': "'Q' as in Quebec", 'R': "'R' as in Romeo",
-                          'S': "'S' as in Sierra", 'T': "'T' as in Tango",
-                          'U': "'U' as in Uniform", 'V': "'V' as in Victor",
-                          'W': "'W' as in Whiskey", 'X': "'X' as in X-Ray",
-                          'Y': "'Y' as in Yankee", 'Z': "'Z' as in Zebra",
-                          '1': 'One', '2': 'Two', '3': 'Three',
-                          '4': 'Four', '5': 'Five', '6': 'Six',
-                          '7': 'Seven', '8': 'Eight', '9': 'Nine',
-                          '0': 'Zero'}
+        self.nato_dict = None
 
     def initialize(self):
         # TODO:18.02 - use decorator
@@ -68,6 +49,7 @@ class PairingSkill(MycroftSkill):
             .require("PairingKeyword").require("DeviceKeyword").build()
         self.register_intent(intent, self.handle_pairing)
         self.add_event("mycroft.not.paired", self.not_paired)
+        self.nato_dict = self.translate_namedvalues('codes')
 
     def not_paired(self, message):
         self.speak_dialog("pairing.not.paired")
