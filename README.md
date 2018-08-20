@@ -1,5 +1,5 @@
-## Pairing
-Connect your device to the Mycroft server
+## Pairing Skill
+Connect your device to the Mycroft server - [home.mycroft.ai](https://home.mycroft.ai/)
 
 ## Description 
 The default backend to provide services for Mycroft users is
@@ -11,4 +11,4 @@ as well as easy configuration for all your Mycroft devices.
 * "Pair my device" (happens automatically on first run if not paired already)
 
 ## Credits 
-Mycroft AI
+@MycroftAI
