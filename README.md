@@ -1,4 +1,4 @@
-## Pairing Skill
+## Pairing
 Connect your device to the Mycroft server - [home.mycroft.ai](https://home.mycroft.ai/)
 
 ## Description 
