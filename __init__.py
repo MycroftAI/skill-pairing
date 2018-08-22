@@ -21,13 +21,13 @@ from mycroft.api import DeviceApi
 from mycroft.identity import IdentityManager
 from mycroft.messagebus.message import Message
 from mycroft.skills.core import MycroftSkill
-import mycroft.util
+import mycroft.audio
 
 
 class PairingSkill(MycroftSkill):
 
     poll_frequency = 10  # secs between checking server for activation
-    
+
     def __init__(self):
         super(PairingSkill, self).__init__("PairingSkill")
         self.api = DeviceApi()
@@ -94,38 +94,30 @@ class PairingSkill(MycroftSkill):
             try:
                 # Obtain a pairing code from the backend
                 self.data = self.api.get_code(self.state)
-                
+
                 # Keep track of when the code was obtained.  The codes expire
                 # after 20 hours.
                 self.time_code_expires = time.time() + 72000  # 20 hours
             except Exception as e:
                 self.log.debug("Failed to get pairing code: " + repr(e))
                 self.speak_dialog('connection.error')
-                self.emitter.emit(Message("mycroft.mic.unmute", None))
+                self.bus.emit(Message("mycroft.mic.unmute", None))
                 with self.counter_lock:
                     self.count = -1
                 return
 
-            # wait_while_speaking() support is mycroft-core 0.8.16+
-            # TODO:18.02 - Remove this try/catch and migrate to the preferred
-            # mycroft.audio.wait_while_speaking
-            try:
-                # This will make sure the user is in 0.8.16+ before continuing
-                # so a < 0.8.16 system will skip writing the URL to the mouth
-                mycroft.util.wait_while_speaking()
+            mycroft.audio.wait_while_speaking()
 
-                self.speak_dialog("pairing.intro")
+            self.speak_dialog("pairing.intro")
 
-                self.enclosure.deactivate_mouth_events()
-                self.enclosure.mouth_text("home.mycroft.ai      ")
-                # HACK this gives the Mark 1 time to scroll the address and
-                # the user time to browse to the website.
-                # TODO: mouth_text() really should take an optional parameter
-                # to not scroll a second time.
-                time.sleep(7)
-                mycroft.util.wait_while_speaking()
-            except:
-                pass
+            self.enclosure.deactivate_mouth_events()
+            self.enclosure.mouth_text("home.mycroft.ai      ")
+            # HACK this gives the Mark 1 time to scroll the address and
+            # the user time to browse to the website.
+            # TODO: mouth_text() really should take an optional parameter
+            # to not scroll a second time.
+            time.sleep(7)
+            mycroft.audio.wait_while_speaking()
 
             if not self.activator:
                 self.__create_activator()
@@ -159,33 +151,26 @@ class PairingSkill(MycroftSkill):
                     self.log.debug("Second save attempt failed: " + repr(e2))
                     self.abort_and_restart()
 
-            # is_speaking() and stop_speaking() support is mycroft-core 0.8.16+
-            try:
-                if mycroft.util.is_speaking():
-                    # Assume speaking is the pairing code.  Stop TTS of that.
-                    mycroft.util.stop_speaking()
-            except:
-                pass
+            if mycroft.audio.is_speaking():
+                # Assume speaking is the pairing code.  Stop TTS of that.
+                mycroft.audio.stop_speaking()
 
             self.enclosure.activate_mouth_events()  # clears the display
-            
+
             # Tell user they are now paired
             self.speak_dialog("pairing.paired")
-            try:
-                mycroft.util.wait_while_speaking()
-            except:
-                pass
+            mycroft.audio.wait_while_speaking()
 
             # Notify the system it is paired and ready
-            self.emitter.emit(Message("mycroft.paired", login))
+            self.bus.emit(Message("mycroft.paired", login))
 
             # Un-mute.  Would have been muted during onboarding for a new
             # unit, and not dangerous to do if pairing was started
             # independently.
-            self.emitter.emit(Message("mycroft.mic.unmute", None))
+            self.bus.emit(Message("mycroft.mic.unmute", None))
 
             # Send signal to update configuration
-            self.emitter.emit(Message("configuration.updated"))
+            self.bus.emit(Message("configuration.updated"))
 
             # Allow this skill to auto-update again
             self.reload_skill = True
@@ -209,12 +194,12 @@ class PairingSkill(MycroftSkill):
         except Exception as e:
             self.log.debug("Unexpected error: " + repr(e))
             self.abort_and_restart()
-            
+
     def abort_and_restart(self):
         # restart pairing sequence
         self.enclosure.activate_mouth_events()
         self.speak_dialog("unexpected.error.restarting")
-        self.emitter.emit(Message("mycroft.not.paired"))
+        self.bus.emit(Message("mycroft.not.paired"))
         with self.counter_lock:
             self.count = -1
         self.activator = None
@@ -242,7 +227,7 @@ class PairingSkill(MycroftSkill):
         code = self.data.get("code")
         self.log.info("Pairing code: " + code)
         data = {"code": '. '.join(map(self.nato_dict.get, code))}
-        
+
         # Make sure code stays on display
         self.enclosure.deactivate_mouth_events()
         self.enclosure.mouth_text(self.data.get("code"))
