@@ -1,14 +1,22 @@
-## Pairing
+# <img src='https://rawgithub.com/FortAwesome/Font-Awesome/master/advanced-options/raw-svg/solid/handshake.svg ' card_color='#22a7f0' width='50' height='50' style='vertical-align:bottom'/> Pairing
 Connect your device to the Mycroft server - [home.mycroft.ai](https://home.mycroft.ai/)
 
-## Description 
-The default backend to provide services for Mycroft users is
-[Home](https://home.mycroft.ai/).  Pairing a device with Home provides access
-to privacy-protecting Speech to Text, Wolfram Alpha and other such services,
-as well as easy configuration for all your Mycroft devices.
+## About 
+ The default backend to provide services for Mycroft users is
+ [Home](https://home.mycroft.ai/).  Pairing a device with Home provides access
+ to privacy-protecting Speech to Text, Wolfram Alpha and other such services,
+ as well as easy configuration for all your Mycroft devices.
 
 ## Examples 
-* "Pair my device" (happens automatically on first run if not paired already)
+* "Pair my device (happens automatically on first run if not paired already)"
 
 ## Credits 
-@MycroftAI
+Mycroft AI (@MycroftAI)
+
+## Category
+**Configuration**
+
+## Tags
+#pair
+#pairing
+#connectivity
