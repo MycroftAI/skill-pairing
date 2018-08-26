@@ -8,7 +8,7 @@ Connect your device to the Mycroft server - [home.mycroft.ai](https://home.mycro
  as well as easy configuration for all your Mycroft devices.
 
 ## Examples 
-* "Pair my device (happens automatically on first run if not paired already)"
+* "Pair my device" (happens automatically on first run if not paired already)
 
 ## Credits 
 Mycroft AI (@MycroftAI)
