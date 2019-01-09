@@ -1,4 +1,4 @@
-# <img src='https://rawgithub.com/FortAwesome/Font-Awesome/master/advanced-options/raw-svg/solid/handshake.svg' card_color='#22a7f0' width='50' height='50' style='vertical-align:bottom'/> Pairing
+# <img src='https://raw.githack.com/FortAwesome/Font-Awesome/master/svgs/solid/handshake.svg' card_color='#22a7f0' width='50' height='50' style='vertical-align:bottom'/> Pairing
 Connect your device to the Mycroft server - [Home](https://home.mycroft.ai/)
 
 ## About 
