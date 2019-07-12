@@ -20,7 +20,7 @@ from adapt.intent import IntentBuilder
 from mycroft.api import DeviceApi
 from mycroft.identity import IdentityManager
 from mycroft.messagebus.message import Message
-from mycroft.skills.core import MycroftSkill
+from mycroft.skills.core import MycroftSkill, intent_handler
 import mycroft.audio
 
 
@@ -44,10 +44,6 @@ class PairingSkill(MycroftSkill):
         self.nato_dict = None
 
     def initialize(self):
-        # TODO:18.02 - use decorator
-        intent = IntentBuilder("PairingIntent") \
-            .require("PairingKeyword").require("DeviceKeyword").build()
-        self.register_intent(intent, self.handle_pairing)
         self.add_event("mycroft.not.paired", self.not_paired)
         self.nato_dict = self.translate_namedvalues('codes')
 
@@ -55,6 +51,8 @@ class PairingSkill(MycroftSkill):
         self.speak_dialog("pairing.not.paired")
         self.handle_pairing()
 
+    @intent_handler(IntentBuilder("PairingIntent")
+                    .require("PairingKeyword").require("DeviceKeyword"))
     def handle_pairing(self, message=None):
         if self.is_paired():
             # Already paired!  Just tell user
@@ -63,8 +61,8 @@ class PairingSkill(MycroftSkill):
             # Kick off pairing...
             with self.counter_lock:
                 if self.count > -1:
-                    # We snuck in to this handler somehow while the pairing process
-                    # is still being setup.  Ignore it.
+                    # We snuck in to this handler somehow while the pairing
+                    # process is still being setup.  Ignore it.
                     self.log.debug("Ignoring call to handle_pairing")
                     return
                 # Not paired or already pairing, so start the process.
