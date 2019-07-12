@@ -79,7 +79,7 @@ class PairingSkill(MycroftSkill):
 
                 # Keep track of when the code was obtained.  The codes expire
                 # after 20 hours.
-                self.time_code_expires = time.time() + 72000  # 20 hours
+                self.time_code_expires = time.monotonic() + 72000  # 20 hours
             except Exception as e:
                 self.log.debug("Failed to get pairing code: " + repr(e))
                 self.speak_dialog('connection.error')
@@ -163,7 +163,7 @@ class PairingSkill(MycroftSkill):
                     self.speak_code()
                 self.count = (self.count + 1) % 6
 
-            if time.time() > self.time_code_expires:
+            if time.monotonic() > self.time_code_expires:
                 # After 20 hours the token times out.  Restart
                 # the pairing process.
                 with self.counter_lock:
