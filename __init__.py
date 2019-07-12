@@ -55,8 +55,8 @@ class PairingSkill(MycroftSkill):
                     .require("PairingKeyword").require("DeviceKeyword"))
     def handle_pairing(self, message=None):
         if self.is_paired():
-            # Already paired!  Just tell user
-            self.speak_dialog("pairing.paired")
+            # Already paired! Just tell user
+            self.speak_dialog("already.paired")
         elif not self.data:
             # Kick off pairing...
             with self.counter_lock:
