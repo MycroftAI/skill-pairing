@@ -24,6 +24,9 @@ from mycroft.skills.core import MycroftSkill, intent_handler
 import mycroft.audio
 
 
+PLATFORMS_WITH_BUTTON = ('mycroft_mark_1')
+
+
 class PairingSkill(MycroftSkill):
 
     poll_frequency = 10  # secs between checking server for activation
@@ -43,9 +46,16 @@ class PairingSkill(MycroftSkill):
 
         self.nato_dict = None
 
+        self.paired_dialog = 'pairing.paired'
+
     def initialize(self):
         self.add_event("mycroft.not.paired", self.not_paired)
         self.nato_dict = self.translate_namedvalues('codes')
+        platform = self.config_core['enclosure'].get('platform', 'unknown')
+        if platform in PLATFORMS_WITH_BUTTON:
+            self.paired_dialog = 'pairing.paired'
+        else:
+            self.paired_dialog = 'pairing.paired.no.button'
 
     def not_paired(self, message):
         self.speak_dialog("pairing.not.paired")
@@ -138,7 +148,7 @@ class PairingSkill(MycroftSkill):
             self.enclosure.activate_mouth_events()  # clears the display
 
             # Tell user they are now paired
-            self.speak_dialog("pairing.paired")
+            self.speak_dialog(self.paired_dialog)
             mycroft.audio.wait_while_speaking()
 
             # Notify the system it is paired and ready
