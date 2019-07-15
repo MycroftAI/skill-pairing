@@ -245,7 +245,6 @@ class PairingSkill(MycroftSkill):
         self.speak_dialog("pairing.code", data)
 
     def shutdown(self):
-        super(PairingSkill, self).shutdown()
         with self.activator_lock:
             self.activator_cancelled = True
             if self.activator:
