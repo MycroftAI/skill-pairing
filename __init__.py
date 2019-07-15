@@ -51,7 +51,6 @@ class PairingSkill(MycroftSkill):
         self.paired_dialog = 'pairing.paired'
 
     def initialize(self):
-        self.log.info("PAIRING STARTING")
         self.add_event("mycroft.not.paired", self.not_paired)
         self.nato_dict = self.translate_namedvalues('codes')
 
@@ -140,6 +139,7 @@ class PairingSkill(MycroftSkill):
         try:
             # Attempt to activate.  If the user has completed pairing on the,
             # backend, this will succeed.  Otherwise it throws and HTTPError()
+
             token = self.data.get("token")
             login = self.api.activate(self.state, token)  # HTTPError() thrown
 
@@ -211,12 +211,17 @@ class PairingSkill(MycroftSkill):
 
     def abort_and_restart(self):
         # restart pairing sequence
+        self.log.debug("Aborting Pairing")
         self.enclosure.activate_mouth_events()
         self.speak_dialog("unexpected.error.restarting")
-        self.bus.emit(Message("mycroft.not.paired"))
+
+        # Reset state variables for a new pairing session
         with self.counter_lock:
             self.count = -1
         self.activator = None
+        self.data = None # Clear pairing code info
+        self.log.info("Restarting pairing process")
+        self.bus.emit(Message("mycroft.not.paired"))
 
     def __create_activator(self):
         # Create a timer that will poll the backend in 10 seconds to see
