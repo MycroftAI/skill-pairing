@@ -16,7 +16,9 @@ import time
 from threading import Timer, Lock
 from uuid import uuid4
 from requests import HTTPError
+
 from adapt.intent import IntentBuilder
+
 from mycroft.api import DeviceApi, is_paired
 from mycroft.identity import IdentityManager
 from mycroft.messagebus.message import Message
@@ -68,14 +70,14 @@ class PairingSkill(MycroftSkill):
             self.paired_dialog = 'pairing.paired.no.button'
 
     def handle_mycroft_ready(self, message):
-        """ Catch info that skills are loaded and ready. """
+        """Catch info that skills are loaded and ready."""
         with self.pair_dialog_lock:
             if is_paired():
                 self.speak_dialog(self.paired_dialog)
             else:
                 self.mycroft_ready = True
 
-    def not_paired(self, message):
+    def not_paired(self, _):
         self.speak_dialog("pairing.not.paired")
         self.handle_pairing()
 
@@ -131,10 +133,9 @@ class PairingSkill(MycroftSkill):
                 self.__create_activator()
 
     def check_for_activate(self):
-        """
-            Function called ever 10 seconds by Timer. Checks if user has
-            activated the device yet on home.mycroft.ai and if not repeats
-            the pairing code every 60 seconds.
+        """Method is called every 10 seconds by Timer. Checks if user has
+        activated the device yet on home.mycroft.ai and if not repeats
+        the pairing code every 60 seconds.
         """
         try:
             # Attempt to activate.  If the user has completed pairing on the,
@@ -234,7 +235,7 @@ class PairingSkill(MycroftSkill):
                 self.activator.start()
 
     def speak_code(self):
-        """ Speak pairing code. """
+        """Speak pairing code."""
         code = self.data.get("code")
         self.log.info("Pairing code: " + code)
         data = {"code": '. '.join(map(self.nato_dict.get, code))}
