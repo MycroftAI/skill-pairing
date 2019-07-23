@@ -5,5 +5,5 @@
     "PairingKeyword": "register",
     "DeviceKeyword": "device"
   },
-  "expected_dialog": "pairing.paired"
+  "expected_dialog": "already.paired"
 }
