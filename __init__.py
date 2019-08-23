@@ -243,6 +243,8 @@ class PairingSkill(MycroftSkill):
         # Make sure code stays on display
         self.enclosure.deactivate_mouth_events()
         self.enclosure.mouth_text(self.data.get("code"))
+        self.gui['code'] = self.data.get("code")
+        self.gui.show_page("pairing.qml")
         self.speak_dialog("pairing.code", data)
 
     def shutdown(self):
