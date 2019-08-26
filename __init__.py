@@ -19,7 +19,7 @@ from requests import HTTPError
 
 from adapt.intent import IntentBuilder
 
-from mycroft.api import DeviceApi, is_paired
+from mycroft.api import DeviceApi, is_paired, check_remote_pairing
 from mycroft.identity import IdentityManager
 from mycroft.messagebus.message import Message
 from mycroft.skills.core import MycroftSkill, intent_handler
@@ -84,7 +84,7 @@ class PairingSkill(MycroftSkill):
     @intent_handler(IntentBuilder("PairingIntent")
                     .require("PairingKeyword").require("DeviceKeyword"))
     def handle_pairing(self, message=None):
-        if is_paired():
+        if check_remote_pairing(ignore_errors=True):
             # Already paired! Just tell user
             self.speak_dialog("already.paired")
         elif not self.data:
