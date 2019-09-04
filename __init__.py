@@ -167,6 +167,9 @@ class PairingSkill(MycroftSkill):
 
             self.enclosure.activate_mouth_events()  # clears the display
 
+            # Notify the system it is paired
+            self.bus.emit(Message("mycroft.paired", login))
+
             with self.pair_dialog_lock:
                 if self.mycroft_ready:
                     # Tell user they are now paired
@@ -175,9 +178,6 @@ class PairingSkill(MycroftSkill):
                 else:
                     self.speak_dialog("wait.for.startup")
                     mycroft.audio.wait_while_speaking()
-
-            # Notify the system it is paired and ready
-            self.bus.emit(Message("mycroft.paired", login))
 
             # Un-mute.  Would have been muted during onboarding for a new
             # unit, and not dangerous to do if pairing was started
