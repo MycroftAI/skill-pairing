@@ -238,7 +238,7 @@ class PairingSkill(MycroftSkill):
         """Speak pairing code."""
         code = self.data.get("code")
         self.log.info("Pairing code: " + code)
-        data = {"code": '. '.join(map(self.nato_dict.get, code))}
+        data = {"code": '. '.join(map(self.nato_dict.get, code)) + '.'}
 
         # Make sure code stays on display
         self.enclosure.deactivate_mouth_events()
