@@ -51,6 +51,7 @@ class PairingSkill(MycroftSkill):
         self.mycroft_ready = False
         self.pair_dialog_lock = Lock()
         self.paired_dialog = 'pairing.paired'
+        self.pairing_performed = False
 
     def initialize(self):
         self.add_event("mycroft.not.paired", self.not_paired)
@@ -72,7 +73,7 @@ class PairingSkill(MycroftSkill):
     def handle_mycroft_ready(self, message):
         """Catch info that skills are loaded and ready."""
         with self.pair_dialog_lock:
-            if is_paired():
+            if is_paired() and self.pairing_performed:
                 self.speak_dialog(self.paired_dialog)
             else:
                 self.mycroft_ready = True
@@ -170,6 +171,7 @@ class PairingSkill(MycroftSkill):
             # Notify the system it is paired
             self.bus.emit(Message("mycroft.paired", login))
 
+            self.pairing_performed = True
             with self.pair_dialog_lock:
                 if self.mycroft_ready:
                     # Tell user they are now paired
