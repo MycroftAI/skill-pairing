@@ -53,6 +53,8 @@ class PairingSkill(MycroftSkill):
         self.paired_dialog = 'pairing.paired'
         self.pairing_performed = False
 
+        self.num_failed_codes = 0
+
     def initialize(self):
         self.add_event("mycroft.not.paired", self.not_paired)
         self.nato_dict = self.translate_namedvalues('codes')
@@ -78,8 +80,9 @@ class PairingSkill(MycroftSkill):
             else:
                 self.mycroft_ready = True
 
-    def not_paired(self, _):
-        self.speak_dialog("pairing.not.paired")
+    def not_paired(self, message):
+        if not message.data.get('quiet', True):
+            self.speak_dialog("pairing.not.paired")
         self.handle_pairing()
 
     @intent_handler(IntentBuilder("PairingIntent")
@@ -109,13 +112,20 @@ class PairingSkill(MycroftSkill):
                 # Keep track of when the code was obtained.  The codes expire
                 # after 20 hours.
                 self.time_code_expires = time.monotonic() + 72000  # 20 hours
-            except Exception as e:
-                self.log.debug("Failed to get pairing code: " + repr(e))
-                self.speak_dialog('connection.error')
-                self.bus.emit(Message("mycroft.mic.unmute", None))
-                with self.counter_lock:
-                    self.count = -1
+            except Exception:
+                time.sleep(10)
+                # Call restart pairing here
+                # Bail out after Five minutes (5 * 6 attempts at 10 seconds
+                # interval)
+                if self.num_failed_codes < 5 * 6:
+                    self.num_failed_codes += 1
+                    self.abort_and_restart(quiet=True)
+                else:
+                    self.end_pairing('connection.error')
+                    self.num_failed_codes = 0
                 return
+
+            self.num_failed_codes = 0  # Reset counter on success
 
             mycroft.audio.wait_while_speaking()
 
@@ -212,11 +222,24 @@ class PairingSkill(MycroftSkill):
             self.log.debug("Unexpected error: " + repr(e))
             self.abort_and_restart()
 
-    def abort_and_restart(self):
+    def end_pairing(self, error_dialog):
+        """Resets the pairing and don't restart it.
+
+        Arguments:
+            error_dialog: Reason for the ending of the pairing process.
+        """
+        self.speak_dialog(error_dialog)
+        self.bus.emit(Message("mycroft.mic.unmute", None))
+
+        self.data = None
+        self.count = -1
+
+    def abort_and_restart(self, quiet=False):
         # restart pairing sequence
         self.log.debug("Aborting Pairing")
         self.enclosure.activate_mouth_events()
-        self.speak_dialog("unexpected.error.restarting")
+        if not quiet:
+            self.speak_dialog("unexpected.error.restarting")
 
         # Reset state variables for a new pairing session
         with self.counter_lock:
@@ -224,7 +247,8 @@ class PairingSkill(MycroftSkill):
         self.activator = None
         self.data = None # Clear pairing code info
         self.log.info("Restarting pairing process")
-        self.bus.emit(Message("mycroft.not.paired"))
+        self.bus.emit(Message("mycroft.not.paired",
+                              data={'quiet': quiet}))
 
     def __create_activator(self):
         # Create a timer that will poll the backend in 10 seconds to see
