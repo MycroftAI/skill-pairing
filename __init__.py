@@ -129,6 +129,7 @@ class PairingSkill(MycroftSkill):
 
             mycroft.audio.wait_while_speaking()
 
+            self.gui.show_page("pairing_start.qml", override_idle=True)
             self.speak_dialog("pairing.intro")
 
             self.enclosure.deactivate_mouth_events()
@@ -179,6 +180,7 @@ class PairingSkill(MycroftSkill):
             self.enclosure.activate_mouth_events()  # clears the display
 
             # Notify the system it is paired
+            self.gui.show_page("pairing_done.qml", override_idle=False)
             self.bus.emit(Message("mycroft.paired", login))
 
             self.pairing_performed = True
@@ -270,7 +272,7 @@ class PairingSkill(MycroftSkill):
         self.enclosure.deactivate_mouth_events()
         self.enclosure.mouth_text(self.data.get("code"))
         self.gui['code'] = self.data.get("code")
-        self.gui.show_page("pairing.qml")
+        self.gui.show_page("pairing.qml", override_idle=True)
         self.speak_dialog("pairing.code", data)
 
     def shutdown(self):
