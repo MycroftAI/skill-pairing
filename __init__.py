@@ -158,9 +158,9 @@ class PairingSkill(MycroftSkill):
 
             # When we get here, the pairing code has been entered on the
             # backend and pairing can now be saved.
-            # The following is kinda ugly, but it is really critical that we get
-            # this saved successfully or we need to let the user know that they
-            # have to perform pairing all over again at the website.
+            # The following is kinda ugly, but it is really critical that we
+            # get this saved successfully or we need to let the user know that
+            # they have to perform pairing all over again at the website.
             try:
                 IdentityManager.save(login)
             except Exception as e:
@@ -247,7 +247,7 @@ class PairingSkill(MycroftSkill):
         with self.counter_lock:
             self.count = -1
         self.activator = None
-        self.data = None # Clear pairing code info
+        self.data = None  # Clear pairing code info
         self.log.info("Restarting pairing process")
         self.bus.emit(Message("mycroft.not.paired",
                               data={'quiet': quiet}))
