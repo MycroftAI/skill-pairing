@@ -25,18 +25,27 @@ import Mycroft 1.0 as Mycroft
 Mycroft.Delegate {
     id: root
     property var code: sessionData.code
-
-    ColumnLayout {
-        anchors.fill: parent
+    Rectangle {
+        color: "#22a7f0"
+        width: parent.width
+        height: parent.height
+        ColumnLayout {
+            anchors.fill: parent
         
-        Kirigami.Heading {
-            id: instruction
-            Layout.fillWidth: true
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-            elide: Text.ElideRight
-            visible: !content.visible
-            text: root.code
+            Kirigami.Heading {
+                id: instruction
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignLeft
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                elide: Text.ElideRight
+                font.family: "Noto Sans"
+                font.bold: true
+                font.weight: Font.Bold
+                font.pixelSize: 100
+                visible: !content.visible
+                text: root.code
+            }
         }
     }
-}  
+}

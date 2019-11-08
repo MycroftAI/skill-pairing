@@ -129,6 +129,7 @@ class PairingSkill(MycroftSkill):
 
             mycroft.audio.wait_while_speaking()
 
+            self.gui.show_page("pairing_start.qml", override_idle=True)
             self.speak_dialog("pairing.intro")
 
             self.enclosure.deactivate_mouth_events()
@@ -157,9 +158,9 @@ class PairingSkill(MycroftSkill):
 
             # When we get here, the pairing code has been entered on the
             # backend and pairing can now be saved.
-            # The following is kinda ugly, but it is really critical that we get
-            # this saved successfully or we need to let the user know that they
-            # have to perform pairing all over again at the website.
+            # The following is kinda ugly, but it is really critical that we
+            # get this saved successfully or we need to let the user know that
+            # they have to perform pairing all over again at the website.
             try:
                 IdentityManager.save(login)
             except Exception as e:
@@ -179,6 +180,7 @@ class PairingSkill(MycroftSkill):
             self.enclosure.activate_mouth_events()  # clears the display
 
             # Notify the system it is paired
+            self.gui.show_page("pairing_done.qml", override_idle=False)
             self.bus.emit(Message("mycroft.paired", login))
 
             self.pairing_performed = True
@@ -245,7 +247,7 @@ class PairingSkill(MycroftSkill):
         with self.counter_lock:
             self.count = -1
         self.activator = None
-        self.data = None # Clear pairing code info
+        self.data = None  # Clear pairing code info
         self.log.info("Restarting pairing process")
         self.bus.emit(Message("mycroft.not.paired",
                               data={'quiet': quiet}))
@@ -270,7 +272,7 @@ class PairingSkill(MycroftSkill):
         self.enclosure.deactivate_mouth_events()
         self.enclosure.mouth_text(self.data.get("code"))
         self.gui['code'] = self.data.get("code")
-        self.gui.show_page("pairing.qml")
+        self.gui.show_page("pairing.qml", override_idle=True)
         self.speak_dialog("pairing.code", data)
 
     def shutdown(self):
