@@ -32,7 +32,7 @@ Mycroft.Delegate {
         ColumnLayout {
             anchors.fill: parent
         
-            Kirigami.Heading {
+            Text {
                 id: instruction
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignLeft
@@ -42,8 +42,11 @@ Mycroft.Delegate {
                 font.family: "Noto Sans"
                 font.bold: true
                 font.weight: Font.Bold
-                font.pixelSize: 100
+                fontSizeMode: Text.HorizontalFit
+                minimumPixelSize: 65
+                font.pixelSize: 80
                 visible: !content.visible
+                color: "white"
                 text: root.code
             }
         }
