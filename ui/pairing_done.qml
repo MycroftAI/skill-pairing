@@ -25,21 +25,26 @@ import Mycroft 1.0 as Mycroft
 Mycroft.Delegate {
     id: root
     property var code: sessionData.code
+    property var headingSize: 70
+    property var exampleSize: 40
+    property var margin: 20
 
     ColumnLayout {
         anchors.fill: parent
+        Layout.fillHeight: true
         
         Kirigami.Heading {
             id: hey
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignLeft
+            Layout.topMargin: margin
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             elide: Text.ElideRight
             font.family: "Noto Sans"
             font.bold: true
             font.weight: Font.Bold
-            font.pixelSize: 70
+            font.pixelSize: headingSize
             visible: !content.visible
             color: "#22a7f0"
             text: "Hey Mycroft"
@@ -54,9 +59,9 @@ Mycroft.Delegate {
             font.family: "Noto Sans"
             font.bold: true
             font.weight: Font.Bold
-            font.pixelSize: 55
+            font.pixelSize: exampleSize
             visible: !content.visible
-            text: "What's the\nweather?"
+            text: "What's the weather?"
         }
         Kirigami.Heading {
             id: example2
@@ -68,7 +73,7 @@ Mycroft.Delegate {
             font.family: "Noto Sans"
             font.bold: true
             font.weight: Font.Bold
-            font.pixelSize: 55
+            font.pixelSize: exampleSize
             visible: !content.visible
             text: "Tell me about\nAbraham Lincoln"
         }
@@ -76,13 +81,14 @@ Mycroft.Delegate {
             id: example3
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignLeft
+            Layout.bottomMargin: margin
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             elide: Text.ElideRight
             font.family: "Noto Sans"
             font.bold: true
             font.weight: Font.Bold
-            font.pixelSize: 55
+            font.pixelSize: exampleSize
             visible: !content.visible
             text: "Play the News"
         }
