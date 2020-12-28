@@ -22,46 +22,50 @@ import org.kde.kirigami 2.4 as Kirigami
 
 import Mycroft 1.0 as Mycroft
 
-Mycroft.Delegate {
+Mycroft.ProportionalDelegate {
     id: root
     property var code: sessionData.code
 
-    ColumnLayout {
-        anchors.fill: parent
-        
-        Kirigami.Heading {
-            id: sentence
-            Layout.fillWidth: true
-            Layout.alignment: Qt.AlignLeft
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-            elide: Text.ElideRight
-            font.family: "Noto Sans"
-            font.bold: true
-            font.weight: Font.Bold
-            font.pixelSize: 40
-            visible: !content.visible
-            text: "I'm connected\nand need to be\nactivated, go to"
-        }
-        Kirigami.Heading {
-            id: example1
-            Layout.fillWidth: true
-            Layout.alignment: Qt.AlignLeft
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-            elide: Text.ElideRight
-            font.family: "Noto Sans"
-            font.bold: true
-            font.weight: Font.Bold
-            font.pixelSize: 40
-            visible: !content.visible
-            color: "#22a7f0"
-            text: "home.mycroft.ai"
-        }
+    Row {
         Image {
-                id: img
-                source: Qt.resolvedUrl("phone.png")
-                Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
+            id: img
+            source: Qt.resolvedUrl("phone.png")
+            Layout.fillHeight: true
+            verticalAlignment: Qt.AlignBottom
+        }
+        ColumnLayout {
+            Kirigami.Heading {
+                id: sentence
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignLeft
+                Layout.leftMargin: 20
+                Layout.topMargin: 80
+                horizontalAlignment: Text.AlignHLeft
+                wrapMode: Text.WordWrap
+                elide: Text.ElideRight
+                font.family: "Noto Sans"
+                font.bold: true
+                font.weight: Font.Bold
+                font.pixelSize: 38
+                visible: !content.visible
+                text: "I'm connected \nand need to \nbe activated, \ngo to"
+            }
+            Kirigami.Heading {
+                id: url
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignLeft
+                Layout.leftMargin: 20
+                horizontalAlignment: Text.AlignHLeft
+                wrapMode: Text.WordWrap
+                elide: Text.ElideRight
+                font.family: "Noto Sans"
+                font.bold: true
+                font.weight: Font.Bold
+                font.pixelSize: 32
+                visible: !content.visible
+                color: "#22a7f0"
+                text: "home.mycroft.ai"
+            }
         }
     }
 }  
