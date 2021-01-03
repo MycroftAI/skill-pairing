@@ -18,7 +18,7 @@ from uuid import uuid4
 from requests import HTTPError
 
 from adapt.intent import IntentBuilder
-
+from time import sleep
 from mycroft.api import DeviceApi, is_paired, check_remote_pairing
 from mycroft.identity import IdentityManager
 from mycroft.messagebus.message import Message
@@ -31,7 +31,7 @@ PLATFORMS_WITH_BUTTON = ('mycroft_mark_1')
 
 class PairingSkill(MycroftSkill):
 
-    poll_frequency = 10  # secs between checking server for activation
+    poll_frequency = 5  # secs between checking server for activation
 
     def __init__(self):
         super(PairingSkill, self).__init__("PairingSkill")
@@ -54,6 +54,12 @@ class PairingSkill(MycroftSkill):
         self.pairing_performed = False
 
         self.num_failed_codes = 0
+
+        # specific vendors can override this
+        if "pairing_url" not in self.settings:
+            self.settings["pairing_url"] = "home.mycroft.ai"
+        if "color" not in self.settings:
+            self.settings["color"] = "#FF0000"
 
     def initialize(self):
         self.add_event("mycroft.not.paired", self.not_paired)
@@ -129,11 +135,10 @@ class PairingSkill(MycroftSkill):
 
             mycroft.audio.wait_while_speaking()
 
-            self.gui.show_page("pairing_start.qml", override_idle=True)
+            self.show_pairing_start()
             self.speak_dialog("pairing.intro")
 
-            self.enclosure.deactivate_mouth_events()
-            self.enclosure.mouth_text("home.mycroft.ai      ")
+
             # HACK this gives the Mark 1 time to scroll the address and
             # the user time to browse to the website.
             # TODO: mouth_text() really should take an optional parameter
@@ -177,10 +182,7 @@ class PairingSkill(MycroftSkill):
                 # Assume speaking is the pairing code.  Stop TTS of that.
                 mycroft.audio.stop_speaking()
 
-            self.enclosure.activate_mouth_events()  # clears the display
-
-            # Notify the system it is paired
-            self.gui.show_page("pairing_done.qml", override_idle=False)
+            self.show_pairing_success()
             self.bus.emit(Message("mycroft.paired", login))
 
             self.pairing_performed = True
@@ -249,6 +251,7 @@ class PairingSkill(MycroftSkill):
         self.activator = None
         self.data = None  # Clear pairing code info
         self.log.info("Restarting pairing process")
+        self.show_pairing_fail()
         self.bus.emit(Message("mycroft.not.paired",
                               data={'quiet': quiet}))
 
@@ -267,13 +270,41 @@ class PairingSkill(MycroftSkill):
         code = self.data.get("code")
         self.log.info("Pairing code: " + code)
         data = {"code": '. '.join(map(self.nato_dict.get, code)) + '.'}
+        self.show_pairing(self.data.get("code"))
+        self.speak_dialog("pairing.code", data)
 
+    def show_pairing_start(self):
         # Make sure code stays on display
         self.enclosure.deactivate_mouth_events()
-        self.enclosure.mouth_text(self.data.get("code"))
-        self.gui['code'] = self.data.get("code")
+        self.enclosure.mouth_text(self.settings["pairing_url"] + "      ")
+        self.gui.show_page("pairing_start.qml", override_idle=True)
+
+    def show_pairing(self, code):
+        self.gui.remove_page("pairing_start.qml")
+        self.enclosure.deactivate_mouth_events()
+        self.enclosure.mouth_text(code)
+        self.gui["txtcolor"] = self.settings["color"]
+        self.gui["backendurl"] = self.settings["pairing_url"]
+        self.gui["code"] = code
         self.gui.show_page("pairing.qml", override_idle=True)
-        self.speak_dialog("pairing.code", data)
+
+    def show_pairing_success(self):
+        self.enclosure.activate_mouth_events()  # clears the display
+        self.gui.remove_page("pairing.qml")
+        self.gui["icon"] = "check-circle.svg"
+        self.gui["label"] = "Device Paired"
+        self.gui["bgColor"] = "#40DBB0"
+        self.gui.show_page("status.qml", override_idle=True)
+        # allow GUI to linger around for a bit
+        sleep(5)
+        self.gui.release()
+
+    def show_pairing_fail(self):
+        self.gui.release()
+        self.gui["icon"] = "times-circle.svg"
+        self.gui["label"] = "Pairing Failed"
+        self.gui["bgColor"] = "#FF0000"
+        self.gui.show_page("status.qml", override_idle=True)
 
     def shutdown(self):
         with self.activator_lock:

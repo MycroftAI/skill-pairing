@@ -24,7 +24,6 @@ import Mycroft 1.0 as Mycroft
 
 Mycroft.Delegate {
     id: root
-    property var code: sessionData.code
 
     ColumnLayout {
         anchors.fill: parent
@@ -41,27 +40,7 @@ Mycroft.Delegate {
             font.weight: Font.Bold
             font.pixelSize: 40
             visible: !content.visible
-            text: "I'm connected\nand need to be\nactivated, go to"
-        }
-        Kirigami.Heading {
-            id: example1
-            Layout.fillWidth: true
-            Layout.alignment: Qt.AlignLeft
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-            elide: Text.ElideRight
-            font.family: "Noto Sans"
-            font.bold: true
-            font.weight: Font.Bold
-            font.pixelSize: 40
-            visible: !content.visible
-            color: "#22a7f0"
-            text: "home.mycroft.ai"
-        }
-        Image {
-                id: img
-                source: Qt.resolvedUrl("phone.png")
-                Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
+            text: "Wait a moment while i fetch my pairing code"
         }
     }
 }  
