@@ -44,7 +44,7 @@ class PairingSkill(MycroftSkill):
         self.count = -1  # for repeating pairing code. -1 = not running
 
         self.nato_dict = None
-
+        self.mycroft_ready = False
         self.num_failed_codes = 0
 
         # specific vendors can override this
@@ -57,10 +57,21 @@ class PairingSkill(MycroftSkill):
         self.add_event("mycroft.not.paired", self.not_paired)
         self.nato_dict = self.translate_namedvalues('codes')
 
+        # If the device isn't paired catch mycroft.ready to report
+        # that the device is ready for use.
+        # This assumes that the pairing skill is loaded as a priority skill
+        # before the rest of the skills are loaded.
+        if not is_paired():
+            self.add_event("mycroft.ready", self.handle_mycroft_ready)
+
     def not_paired(self, message):
         if not message.data.get('quiet', True):
             self.speak_dialog("pairing.not.paired")
         self.handle_pairing()
+
+    def handle_mycroft_ready(self, message):
+        """Catch info that skills are loaded and ready."""
+        self.mycroft_ready = True
 
     @intent_handler(IntentBuilder("PairingIntent")
                     .require("PairingKeyword").require("DeviceKeyword"))
@@ -156,7 +167,11 @@ class PairingSkill(MycroftSkill):
             self.show_pairing_success()
             self.bus.emit(Message("mycroft.paired", login))
 
-            self.speak_dialog("wait.for.startup")
+            if self.mycroft_ready:
+                # Tell user they are now paired
+                self.speak_dialog("pairing.paired", wait=True)
+            else:
+                self.speak_dialog("wait.for.startup", wait=True)
 
             # Un-mute.  Would have been muted during onboarding for a new
             # unit, and not dangerous to do if pairing was started
