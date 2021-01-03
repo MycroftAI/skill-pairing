@@ -26,9 +26,6 @@ from mycroft.skills.core import MycroftSkill, intent_handler
 import mycroft.audio
 
 
-PLATFORMS_WITH_BUTTON = ('mycroft_mark_1')
-
-
 class PairingSkill(MycroftSkill):
 
     poll_frequency = 5  # secs between checking server for activation
@@ -48,11 +45,6 @@ class PairingSkill(MycroftSkill):
 
         self.nato_dict = None
 
-        self.mycroft_ready = False
-        self.pair_dialog_lock = Lock()
-        self.paired_dialog = 'pairing.paired'
-        self.pairing_performed = False
-
         self.num_failed_codes = 0
 
         # specific vendors can override this
@@ -64,27 +56,6 @@ class PairingSkill(MycroftSkill):
     def initialize(self):
         self.add_event("mycroft.not.paired", self.not_paired)
         self.nato_dict = self.translate_namedvalues('codes')
-
-        # If the device isn't paired catch mycroft.ready to report
-        # that the device is ready for use.
-        # This assumes that the pairing skill is loaded as a priority skill
-        # before the rest of the skills are loaded.
-        if not is_paired():
-            self.add_event("mycroft.ready", self.handle_mycroft_ready)
-
-        platform = self.config_core['enclosure'].get('platform', 'unknown')
-        if platform in PLATFORMS_WITH_BUTTON:
-            self.paired_dialog = 'pairing.paired'
-        else:
-            self.paired_dialog = 'pairing.paired.no.button'
-
-    def handle_mycroft_ready(self, message):
-        """Catch info that skills are loaded and ready."""
-        with self.pair_dialog_lock:
-            if is_paired() and self.pairing_performed:
-                self.speak_dialog(self.paired_dialog)
-            else:
-                self.mycroft_ready = True
 
     def not_paired(self, message):
         if not message.data.get('quiet', True):
@@ -185,15 +156,7 @@ class PairingSkill(MycroftSkill):
             self.show_pairing_success()
             self.bus.emit(Message("mycroft.paired", login))
 
-            self.pairing_performed = True
-            with self.pair_dialog_lock:
-                if self.mycroft_ready:
-                    # Tell user they are now paired
-                    self.speak_dialog(self.paired_dialog)
-                    mycroft.audio.wait_while_speaking()
-                else:
-                    self.speak_dialog("wait.for.startup")
-                    mycroft.audio.wait_while_speaking()
+            self.speak_dialog("wait.for.startup")
 
             # Un-mute.  Would have been muted during onboarding for a new
             # unit, and not dangerous to do if pairing was started
