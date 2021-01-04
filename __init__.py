@@ -72,6 +72,7 @@ class PairingSkill(MycroftSkill):
     def handle_mycroft_ready(self, message):
         """Catch info that skills are loaded and ready."""
         self.mycroft_ready = True
+        self.gui.release()
 
     @intent_handler(IntentBuilder("PairingIntent")
                     .require("PairingKeyword").require("DeviceKeyword"))
@@ -275,7 +276,7 @@ class PairingSkill(MycroftSkill):
         self.gui.show_page("status.qml", override_idle=True)
         # allow GUI to linger around for a bit
         sleep(5)
-        self.gui.release()
+        self.gui.show_page("loading.qml", override_idle=True)
 
     def show_pairing_fail(self):
         self.gui.release()
