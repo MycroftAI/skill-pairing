@@ -33,7 +33,7 @@ Mycroft.Delegate {
     topPadding: 0
     
     Rectangle {
-        color: "#242424"
+        color: "#000000"
         anchors.fill: parent
         
         ColumnLayout {
@@ -56,7 +56,7 @@ Mycroft.Delegate {
                     font.bold: true
                     font.weight: Font.Bold
                     font.pixelSize: colLay.height * 0.05
-                    color: "#979797"
+                    color: "white"
                     text: "Visit"
                 }
                 
@@ -86,7 +86,7 @@ Mycroft.Delegate {
                 font.bold: true
                 font.weight: Font.Bold
                 font.pixelSize: parent.height * 0.05
-                color: "#979797"
+                color: "white"
                 text: "to pair this device"
             }
                 
@@ -113,7 +113,7 @@ Mycroft.Delegate {
                 font.bold: true
                 font.weight: Font.Bold
                 font.pixelSize: parent.height * 0.05
-                color: "#979797"
+                color: "white"
                 text: "Enter the code"
             }
             

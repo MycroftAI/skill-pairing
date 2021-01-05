@@ -31,7 +31,7 @@ Mycroft.Delegate {
     topPadding: 0
     
     Rectangle {
-        color: "#242424"
+        color: "#000000"
         anchors.fill: parent
 
         ColumnLayout {
@@ -70,7 +70,7 @@ Mycroft.Delegate {
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
                 elide: Text.ElideRight
-                color: "#979797"
+                color: "white"
                 font.family: "Noto Sans"
                 font.bold: true
                 font.weight: Font.Bold

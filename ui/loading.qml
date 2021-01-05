@@ -15,7 +15,7 @@ Mycroft.Delegate {
     
     Rectangle {
         anchors.fill: parent
-        color: "#242424"
+        color: "#000000"
         
         ColumnLayout {
             id: grid
@@ -31,7 +31,7 @@ Mycroft.Delegate {
                 font.family: "Noto Sans Display"
                 font.styleName: "Black"
                 text: "Setting Up"
-                color: "#979797"
+                color: "white"
             }
             
             Label {
