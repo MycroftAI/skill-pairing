@@ -13,7 +13,14 @@ Mycroft.Delegate {
     rightPadding: 0
     topPadding: 0
     bottomPadding: 0
-    
+
+    function checkstatus(status) {
+        if(status == "Success") {
+            return Qt.resolvedUrl("animations/status-paired.json")
+        } else if (status == "Failed") {
+            return Qt.resolvedUrl("animations/status-fail.json")
+        }
+    }
     
     Rectangle {
         anchors.fill: parent
@@ -34,14 +41,7 @@ Mycroft.Delegate {
                 loops: Animation.Infinite
                 fillMode: Image.PreserveAspectFit
                 running: true
-                source: switch(root.success) {
-                    case(1):
-                        return Qt.resolvedUrl("animations/status-paired.json")
-                        break;
-                    case(2):
-                        return Qt.resolvedUrl("animations/status-fail.json")
-                        break;
-                }
+                source: checkstatus(sessionData.status)
             }
 
             Label {
