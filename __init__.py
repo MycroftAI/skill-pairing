@@ -270,7 +270,7 @@ class PairingSkill(MycroftSkill):
     def show_pairing_success(self):
         self.enclosure.activate_mouth_events()  # clears the display
         self.gui.remove_page("pairing.qml")
-        self.gui["icon"] = "check-circle.svg"
+        self.gui["status"] = "1" # Success
         self.gui["label"] = "Device Paired"
         self.gui["bgColor"] = "#40DBB0"
         self.gui.show_page("status.qml", override_idle=True)
@@ -281,7 +281,7 @@ class PairingSkill(MycroftSkill):
 
     def show_pairing_fail(self):
         self.gui.release()
-        self.gui["icon"] = "times-circle.svg"
+        self.gui["status"] = "2" # Failed
         self.gui["label"] = "Pairing Failed"
         self.gui["bgColor"] = "#FF0000"
         self.gui.show_page("status.qml", override_idle=True)

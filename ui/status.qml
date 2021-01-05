@@ -4,41 +4,57 @@ import QtQuick.Controls 2.0
 import org.kde.kirigami 2.4 as Kirigami
 
 import Mycroft 1.0 as Mycroft
+import org.kde.lottie 1.0
 
-Mycroft.ProportionalDelegate {
+Mycroft.Delegate {
     id: root
-    skillBackgroundColorOverlay: sessionData.bgColor
+    property var success: sessionData.status
+    leftPadding: 0
+    rightPadding: 0
+    topPadding: 0
+    bottomPadding: 0
     
-    ColumnLayout {
-        id: grid
-        anchors.centerIn: parent
+    
+    Rectangle {
+        anchors.fill: parent
+        color: "#242424"
+        
+        ColumnLayout {
+            id: grid
+            anchors.fill: parent
+            anchors.margins: Kirigami.Units.largeSpacing
 
-        Image {
-            id: statusIcon
-            visible: true
-            enabled: true
-            anchors.horizontalCenter: grid.horizontalCenter
-            Layout.preferredWidth: proportionalGridUnit * 50
-            Layout.preferredHeight: proportionalGridUnit * 50
-            source: Qt.resolvedUrl(`icons/${sessionData.icon}`)
-        }
+            LottieAnimation {
+                id: statusIcon
+                visible: true
+                enabled: true
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.alignment: Qt.AlignHCenter
+                loops: Animation.Infinite
+                fillMode: Image.PreserveAspectFit
+                running: true
+                source: switch(root.success) {
+                    case(1):
+                        return Qt.resolvedUrl("animations/status-paired.json")
+                        break;
+                    case(2):
+                        return Qt.resolvedUrl("animations/status-fail.json")
+                        break;
+                }
+            }
 
-        /* Add some spacing between icon and text */
-        Item {
-            height: Kirigami.Units.largeSpacing
-        }
-
-        Label {
-            id: statusLabel
-            Layout.alignment: Qt.AlignHCenter
-            font.pixelSize: 65
-            wrapMode: Text.WordWrap
-            renderType: Text.NativeRendering
-            font.family: "Noto Sans Display"
-            font.styleName: "Black"
-            font.capitalization: Font.AllUppercase
-            text: sessionData.label
-            color: "white"
+            Label {
+                id: statusLabel
+                Layout.alignment: Qt.AlignHCenter
+                font.pixelSize: parent.height * 0.095
+                wrapMode: Text.WordWrap
+                renderType: Text.NativeRendering
+                font.family: "Noto Sans Display"
+                font.styleName: "Black"
+                text: sessionData.label
+                color: "#979797"
+            }
         }
     }
 }

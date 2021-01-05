@@ -21,26 +21,62 @@ import QtQuick.Controls 2.0
 import org.kde.kirigami 2.4 as Kirigami
 
 import Mycroft 1.0 as Mycroft
+import org.kde.lottie 1.0
 
 Mycroft.Delegate {
     id: root
-
-    ColumnLayout {
+    leftPadding: 0
+    rightPadding: 0
+    bottomPadding: 0
+    topPadding: 0
+    
+    Rectangle {
+        color: "#242424"
         anchors.fill: parent
-        
-        Kirigami.Heading {
-            id: sentence
-            Layout.fillWidth: true
-            Layout.alignment: Qt.AlignLeft
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-            elide: Text.ElideRight
-            font.family: "Noto Sans"
-            font.bold: true
-            font.weight: Font.Bold
-            font.pixelSize: 40
-            visible: !content.visible
-            text: "Wait a moment while i fetch my pairing code"
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: Kirigami.Units.largeSpacing
+                    
+            Kirigami.Heading {
+                id: sentence2
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignLeft
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                elide: Text.ElideRight
+                color: "#ff0000"
+                font.family: "Noto Sans"
+                font.bold: true
+                font.weight: Font.Bold
+                font.pixelSize: parent.height * 0.05
+                text: "Fetching Pairing Code" 
+            }
+            
+            LottieAnimation {
+                id: l1
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                source: Qt.resolvedUrl("animations/connected-waiting.json")
+                loops: Animation.Infinite
+                fillMode: Image.PreserveAspectFit
+                running: true
+            }
+            
+            Kirigami.Heading {
+                id: sentence
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignLeft
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                elide: Text.ElideRight
+                color: "#979797"
+                font.family: "Noto Sans"
+                font.bold: true
+                font.weight: Font.Bold
+                font.pixelSize: parent.height * 0.075
+                text: "I'm connected\nand need to be\nactivated" 
+            }
         }
     }
 }  

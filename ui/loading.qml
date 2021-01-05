@@ -1,19 +1,63 @@
-import QtQuick 2.4
-import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.4
+import QtQuick 2.4
+import QtQuick.Controls 2.0
 import org.kde.kirigami 2.4 as Kirigami
+
 import Mycroft 1.0 as Mycroft
+import org.kde.lottie 1.0
 
 Mycroft.Delegate {
-    skillBackgroundSource: "https://github.com/OpenVoiceOS/ovos_assets/raw/master/Logo/ovos-logo-512.png"
+    id: root
+    leftPadding: 0
+    rightPadding: 0
+    topPadding: 0
+    bottomPadding: 0
+    
+    Rectangle {
+        anchors.fill: parent
+        color: "#242424"
+        
+        ColumnLayout {
+            id: grid
+            anchors.fill: parent
+            anchors.margins: Kirigami.Units.largeSpacing
+            
+            Label {
+                id: statusLabel
+                Layout.alignment: Qt.AlignHCenter
+                font.pixelSize: parent.height * 0.075
+                wrapMode: Text.WordWrap
+                renderType: Text.NativeRendering
+                font.family: "Noto Sans Display"
+                font.styleName: "Black"
+                text: "Setting Up"
+                color: "#979797"
+            }
+            
+            Label {
+                id: statusLabel2
+                Layout.alignment: Qt.AlignHCenter
+                font.pixelSize: parent.height * 0.075
+                wrapMode: Text.WordWrap
+                renderType: Text.NativeRendering
+                font.family: "Noto Sans Display"
+                font.styleName: "Black"
+                text: "Default Skills"
+                color: "#ff0000"
+            }
 
-    Mycroft.PaginatedText {
-         anchors.fill: parent
-         text: "Installing default skills...."
-         currentIndex: 0
-         horizontalAlignment: Text.AlignHCenter
-         //font.pointSize: Kirigami.Units.gridUnit
-         // HACK TO SET BETTER SIZE ON RESPEAKER IMAGE
-         font.pointSize: Kirigami.Units.smallSpacing * 3
+            LottieAnimation {
+                id: statusIcon
+                visible: true
+                enabled: true
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.alignment: Qt.AlignHCenter
+                loops: Animation.Infinite
+                fillMode: Image.PreserveAspectFit
+                running: true
+                source: Qt.resolvedUrl("animations/installing.json")
+            }
+        }
     }
 }

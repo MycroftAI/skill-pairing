@@ -27,72 +27,110 @@ Mycroft.Delegate {
     property var code: sessionData.code
     property var txtcolor: sessionData.txtcolor
     property var backendurl: sessionData.backendurl
-
-    ColumnLayout {
+    leftPadding: 0
+    rightPadding: 0
+    bottomPadding: 0
+    topPadding: 0
+    
+    Rectangle {
+        color: "#242424"
         anchors.fill: parent
         
-        Kirigami.Heading {
-            id: sentence
-            Layout.fillWidth: true
-            Layout.alignment: Qt.AlignLeft
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-            elide: Text.ElideRight
-            font.family: "Noto Sans"
-            font.bold: true
-            font.weight: Font.Bold
-            font.pixelSize: 40
-            visible: !content.visible
-            text: "I'm connected\nand need to be\nactivated, go to"
-        }
-        Kirigami.Heading {
-            id: backendurl
-            Layout.fillWidth: true
-            Layout.alignment: Qt.AlignLeft
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-            elide: Text.ElideRight
-            font.family: "Noto Sans"
-            font.bold: true
-            font.weight: Font.Bold
-            font.pixelSize: 40
-            visible: !content.visible
-            color: root.txtcolor
-            text: root.backendurl
-        }
-        Kirigami.Heading {
-            id: entercode
-            Layout.fillWidth: true
-            Layout.alignment: Qt.AlignLeft
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-            elide: Text.ElideRight
-            font.family: "Noto Sans"
-            font.bold: true
-            font.weight: Font.Bold
-            font.pixelSize: 40
-            visible: !content.visible
-            text: "Enter the code"
-        }
-         Kirigami.Heading {
-            id: pairingcode
-            Layout.fillWidth: true
-            Layout.alignment: Qt.AlignLeft
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-            elide: Text.ElideRight
-            font.family: "Noto Sans"
-            font.bold: true
-            font.weight: Font.Bold
-            font.pixelSize: 40
-            visible: !content.visible
-            color: root.txtcolor
-            text: root.code
-        }
-        Image {
+        ColumnLayout {
+            id: colLay
+            anchors.fill: parent
+            anchors.margins: Kirigami.Units.largeSpacing
+            
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.minimumHeight: colLay.height * 0.075
+                Layout.alignment: Qt.AlignHCenter
+                                    
+                Kirigami.Heading {
+                    id: sentence
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    wrapMode: Text.WordWrap
+                    elide: Text.ElideRight
+                    font.family: "Noto Sans"
+                    font.bold: true
+                    font.weight: Font.Bold
+                    font.pixelSize: colLay.height * 0.05
+                    color: "#979797"
+                    text: "Visit"
+                }
+                
+                Kirigami.Heading {
+                    id: backendurl
+                    horizontalAlignment: Text.AlignLeft
+                    verticalAlignment: Text.AlignVCenter
+                    wrapMode: Text.WordWrap
+                    elide: Text.ElideRight
+                    font.family: "Noto Sans"
+                    font.bold: true
+                    font.weight: Font.Bold
+                    font.pixelSize: colLay.height * 0.05
+                    color: root.txtcolor
+                    text: root.backendurl
+                }
+            }
+        
+            Kirigami.Heading {
+                id: sentence3
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignLeft
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                elide: Text.ElideRight
+                font.family: "Noto Sans"
+                font.bold: true
+                font.weight: Font.Bold
+                font.pixelSize: parent.height * 0.05
+                color: "#979797"
+                text: "to pair this device"
+            }
+                
+            Image {
                 id: img
                 source: Qt.resolvedUrl("phone.png")
+                fillMode: Image.PreserveAspectFit
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.leftMargin: Kirigami.Units.largeSpacing
+                Layout.rightMargin: Kirigami.Units.largeSpacing
                 Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
+            }
+            
+            
+            Kirigami.Heading {
+                id: entercode
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignLeft
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                elide: Text.ElideRight
+                font.family: "Noto Sans"
+                font.bold: true
+                font.weight: Font.Bold
+                font.pixelSize: parent.height * 0.05
+                color: "#979797"
+                text: "Enter the code"
+            }
+            
+            Kirigami.Heading {
+                id: pairingcode
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignLeft
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                elide: Text.ElideRight
+                font.family: "Noto Sans"
+                font.bold: true
+                font.weight: Font.Bold
+                font.pixelSize: parent.height * 0.075
+                color: root.txtcolor
+                text: root.code
+            }
         }
     }
 }  
