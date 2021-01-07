@@ -291,7 +291,10 @@ class PairingSkill(MycroftSkill):
         self.gui.remove_page("status.qml")
         
     def show_mycroft_not_ready(self):
-        self.gui.show_page("loading.qml", override_idle=True, override_animations=True)
+        if not self.mycroft_ready:
+            self.gui.show_page("loading.qml", override_idle=True, override_animations=True)
+        else:
+            self.bus.emit(Message("mycroft.display.reset_idle"))
 
     def shutdown(self):
         with self.activator_lock:
