@@ -55,7 +55,6 @@ class PairingSkill(MycroftSkill):
 
     def initialize(self):
         self.add_event("mycroft.not.paired", self.not_paired)
-        self.add_event("show.not.ready", self.show_mycroft_not_ready)
         self.nato_dict = self.translate_namedvalues('codes')
 
         # If the device isn't paired catch mycroft.ready to report
@@ -258,7 +257,7 @@ class PairingSkill(MycroftSkill):
         # Make sure code stays on display
         self.enclosure.deactivate_mouth_events()
         self.enclosure.mouth_text(self.settings["pairing_url"] + "      ")
-        self.gui.show_page("pairing_start.qml", override_idle=True, override_animations=True)
+        self.gui.show_page("pairing_start.qml", override_animations=True)
 
     def show_pairing(self, code):
         self.gui.remove_page("pairing_start.qml")
@@ -267,7 +266,7 @@ class PairingSkill(MycroftSkill):
         self.gui["txtcolor"] = self.settings["color"]
         self.gui["backendurl"] = self.settings["pairing_url"]
         self.gui["code"] = code
-        self.gui.show_page("pairing.qml", override_idle=True, override_animations=True)
+        self.gui.show_page("pairing.qml", override_animations=True)
 
     def show_pairing_success(self):
         self.enclosure.activate_mouth_events()  # clears the display
@@ -275,26 +274,20 @@ class PairingSkill(MycroftSkill):
         self.gui["status"] = "Success"
         self.gui["label"] = "Device Paired"
         self.gui["bgColor"] = "#40DBB0"
-        self.gui.show_page("status.qml", override_idle=True, override_animations=True)
+        self.gui.show_page("status.qml", override_animations=True)
         # allow GUI to linger around for a bit
         sleep(5)
         self.gui.remove_page("status.qml")
-        self.gui.show_page("loading.qml", override_idle=True, override_animations=True)
+        self.gui.show_page("loading.qml", override_animations=True)
 
     def show_pairing_fail(self):
         self.gui.release()
         self.gui["status"] = "Failed"
         self.gui["label"] = "Pairing Failed"
         self.gui["bgColor"] = "#FF0000"
-        self.gui.show_page("status.qml", override_idle=True, override_animations=True)
+        self.gui.show_page("status.qml", override_animations=True)
         sleep(5)
         self.gui.remove_page("status.qml")
-        
-    def show_mycroft_not_ready(self):
-        if not self.mycroft_ready:
-            self.gui.show_page("loading.qml", override_idle=True, override_animations=True)
-        else:
-            self.bus.emit(Message("mycroft.display.reset_idle"))
 
     def shutdown(self):
         with self.activator_lock:
