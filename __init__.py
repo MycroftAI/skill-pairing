@@ -19,7 +19,7 @@ from requests import HTTPError
 from os.path import join, dirname
 from ovos_utils.configuration import update_mycroft_config
 from ovos_utils.skills import blacklist_skill
-from mock_mycroft_backend.configuration import CONFIGURATION
+from ovos_local_backend.configuration import CONFIGURATION
 from adapt.intent import IntentBuilder
 from time import sleep
 from mycroft.api import DeviceApi, is_paired, check_remote_pairing
