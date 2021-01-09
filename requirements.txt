@@ -1,2 +1,3 @@
 mock-mycroft-backend>=0.3.0
 jarbas-stt-plugin-chromium
+ovos_utils>=0.0.5
