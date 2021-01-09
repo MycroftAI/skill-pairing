@@ -16,7 +16,10 @@ import time
 from threading import Timer, Lock
 from uuid import uuid4
 from requests import HTTPError
-
+from os.path import join, dirname
+from ovos_utils.configuration import update_mycroft_config
+from ovos_utils.skills import blacklist_skill
+from mock_mycroft_backend.configuration import CONFIGURATION
 from adapt.intent import IntentBuilder
 from time import sleep
 from mycroft.api import DeviceApi, is_paired, check_remote_pairing
@@ -47,14 +50,23 @@ class PairingSkill(MycroftSkill):
         self.mycroft_ready = False
         self.num_failed_codes = 0
 
+        self.in_pairing = False
         # specific vendors can override this
         if "pairing_url" not in self.settings:
             self.settings["pairing_url"] = "home.mycroft.ai"
         if "color" not in self.settings:
             self.settings["color"] = "#FF0000"
 
+        self.initial_stt = self.config_core["stt"]["module"]
+        self.in_confirmation = False
+        self.confirmation_counter = 0
+        self.using_mock = self.config_core["server"]["url"] != "https://api.mycroft.ai"
+
+    # startup
     def initialize(self):
         self.add_event("mycroft.not.paired", self.not_paired)
+        self.gui.register_handler("mycroft.device.set.backend",
+                                  self.handle_backend_select)
         self.nato_dict = self.translate_namedvalues('codes')
 
         # If the device isn't paired catch mycroft.ready to report
@@ -63,6 +75,11 @@ class PairingSkill(MycroftSkill):
         # before the rest of the skills are loaded.
         if not is_paired():
             self.add_event("mycroft.ready", self.handle_mycroft_ready)
+
+        # blacklist conflicting skills
+        blacklist_skill("mycroft-pairing.mycroftai")
+
+        self.make_active()  # to enable converse
 
     def not_paired(self, message):
         if not message.data.get('quiet', True):
@@ -75,63 +92,221 @@ class PairingSkill(MycroftSkill):
         self.gui.remove_page("loading.qml")
         self.gui.release()
 
+    # voice events
+    def converse(self, utterances, lang=None):
+        if self.in_pairing and "pair my device" in utterances:
+            # mycroft-core emits this, let's capture it because we are
+            # handling pairing already
+            return True
+        return False
+
     @intent_handler(IntentBuilder("PairingIntent")
                     .require("PairingKeyword").require("DeviceKeyword"))
     def handle_pairing(self, message=None):
-        if check_remote_pairing(ignore_errors=True):
+        self.in_pairing = True
+
+        if self.initial_stt == "mycroft":
+            # STT not available, temporarily set chromium plugin
+            self.change_to_plugin()
+
+        if self.using_mock:
+            # user triggered intent, wants to enable pairing
+            self.handle_use_selene()
+        elif check_remote_pairing(ignore_errors=True):
             # Already paired! Just tell user
             self.speak_dialog("already.paired")
         elif not self.data:
-            # Kick off pairing...
-            with self.counter_lock:
-                if self.count > -1:
-                    # We snuck in to this handler somehow while the pairing
-                    # process is still being setup.  Ignore it.
-                    self.log.debug("Ignoring call to handle_pairing")
-                    return
-                # Not paired or already pairing, so start the process.
-                self.count = 0
-            self.reload_skill = False  # Prevent restart during the process
+            self.gui.show_page("BackendSelect.qml", override_idle=True,
+                               override_animations=True)
+            self.in_confirmation = True
+            self.confirmation_loop()
+        self.in_pairing = False
+        self.change_to_default()  # reset STT
 
-            self.log.debug("Kicking off pairing sequence")
+    # stt handling
+    def change_to_default(self):
+        if self.initial_stt != "chromium_stt_plug":
+            self.log.info("restoring STT configuration")
+            config = {
+                "stt": {
+                    "module": self.initial_stt
+                }
+            }
+            update_mycroft_config(config)
 
-            try:
-                # Obtain a pairing code from the backend
-                self.data = self.api.get_code(self.state)
+    def change_to_plugin(self):
+        if self.initial_stt != "chromium_stt_plug":
+            self.log.info("Temporarily setting chromium plugin (free STT)")
+            config = {
+                "stt": {
+                    "module": "chromium_stt_plug"
+                }
+            }
+            update_mycroft_config(config)
+            time.sleep(2) # allow STT to reload
 
-                # Keep track of when the code was obtained.  The codes expire
-                # after 20 hours.
-                self.time_code_expires = time.monotonic() + 72000  # 20 hours
-            except Exception:
-                time.sleep(10)
-                # Call restart pairing here
-                # Bail out after Five minutes (5 * 6 attempts at 10 seconds
-                # interval)
-                if self.num_failed_codes < 5 * 6:
-                    self.num_failed_codes += 1
-                    self.abort_and_restart(quiet=True)
-                else:
-                    self.end_pairing('connection.error')
-                    self.num_failed_codes = 0
+    # backend selection
+    def confirmation_loop(self):
+        if not self.in_confirmation:
+            return  # gui event selection
+
+        answer = self.get_response("choose_backend", num_retries=0)
+        if answer:
+            if self.voc_match(answer, "no_backend"):
+                self.handle_use_mock()
+            elif self.voc_match(answer, "backend"):
+                self.handle_use_selene()
+            else:
+                # user said something not accounted for
+                self.speak_dialog("no_understand", wait=True)
+                # reset confirmation loop and keep asking
+                self.confirmation_counter = 0
+                self.confirmation_loop()
+            return
+        if not self.in_confirmation:
+            return  # gui event selection
+        self.confirmation_counter += 1
+        if self.confirmation_counter >= 5:
+            # no user answer, assume pairing wanted
+            # NOTE: it could be a STT failure
+            self.speak_dialog("force_pairing")
+            self.handle_use_selene()
+            return
+        # keep asking user
+        self.confirmation_loop()
+
+    def handle_backend_select(self, message):
+        # GUI selection event
+        backend = message.data["backend"]
+        self.in_confirmation = False
+        self.confirmation_counter = 0
+        if backend == "local":
+            self.handle_use_mock(message)
+        else:
+            self.handle_use_selene(message)
+
+    def handle_use_selene(self, message=None):
+        # selene selected
+        self.speak_dialog("mycroft", wait=True)
+        if self.using_mock:
+            self.enable_selene()
+            self.data = None
+            # TODO restart
+
+        self.gui.remove_page("BackendSelect.qml")
+        self.confirmation_counter = 0
+        if check_remote_pairing(ignore_errors=True):
+            # Already paired! Just tell user
+            self.speak_dialog("already.paired")
+            self.in_pairing = False
+        elif not self.data:
+            # continue to normal pairing process
+            self.kickoff_pairing()
+
+    def handle_use_mock(self, message=None):
+        # mock backend selected
+        self.speak_dialog("local", wait=True)
+        if not self.using_mock:
+            self.enable_mock()
+            # TODO restart
+
+        self.confirmation_counter = 0
+        picture = join(dirname(__file__), "ui", "no_backend.png")
+        self.gui.remove_page("BackendSelect.qml")
+        self.gui.show_image(picture,
+                            override_idle=True,
+                            override_animations=True)
+        self.in_pairing = False
+        self.data = None
+
+    def enable_selene(self, send_event=True):
+        config = {
+                "server": {
+                    "url": "https://api.mycroft.ai",
+                    "version": "v1"
+                },
+                "listener": {
+                    "wake_word_upload": {
+                        "url": "https://training.mycroft.ai/precise/upload"
+                    }
+                }
+            }
+        update_mycroft_config(config)
+        self.using_mock = False
+        if send_event:
+            self.bus.emit(Message("configuration.updated"))
+
+    def enable_mock(self, send_event=True):
+        url = "http://0.0.0.0:{p}".format(p=CONFIGURATION["backend_port"])
+        version = CONFIGURATION["api_version"]
+        config = {
+            "server": {
+                "url": url,
+                "version": version
+            },
+            "listener": {
+                "wake_word_upload": {
+                    "url": "http://0.0.0.0:{p}/precise/upload".format(
+                        p=CONFIGURATION["backend_port"])
+                }
+            }
+        }
+        update_mycroft_config(config)
+        self.using_mock = True
+        if send_event:
+            self.bus.emit(Message("configuration.updated"))
+
+    # pairing
+    def kickoff_pairing(self):
+        # Kick off pairing...
+        with self.counter_lock:
+            if self.count > -1:
+                # We snuck in to this handler somehow while the pairing
+                # process is still being setup.  Ignore it.
+                self.log.debug("Ignoring call to handle_pairing")
                 return
+            # Not paired or already pairing, so start the process.
+            self.count = 0
+        self.reload_skill = False  # Prevent restart during the process
 
-            self.num_failed_codes = 0  # Reset counter on success
+        self.log.debug("Kicking off pairing sequence")
 
-            mycroft.audio.wait_while_speaking()
+        try:
+            # Obtain a pairing code from the backend
+            self.data = self.api.get_code(self.state)
 
-            self.show_pairing_start()
-            self.speak_dialog("pairing.intro")
+            # Keep track of when the code was obtained.  The codes expire
+            # after 20 hours.
+            self.time_code_expires = time.monotonic() + 72000  # 20 hours
+        except Exception:
+            time.sleep(10)
+            # Call restart pairing here
+            # Bail out after Five minutes (5 * 6 attempts at 10 seconds
+            # interval)
+            if self.num_failed_codes < 5 * 6:
+                self.num_failed_codes += 1
+                self.abort_and_restart(quiet=True)
+            else:
+                self.end_pairing('connection.error')
+                self.num_failed_codes = 0
+            return
 
+        self.num_failed_codes = 0  # Reset counter on success
 
-            # HACK this gives the Mark 1 time to scroll the address and
-            # the user time to browse to the website.
-            # TODO: mouth_text() really should take an optional parameter
-            # to not scroll a second time.
-            time.sleep(7)
-            mycroft.audio.wait_while_speaking()
+        mycroft.audio.wait_while_speaking()
 
-            if not self.activator:
-                self.__create_activator()
+        self.show_pairing_start()
+        self.speak_dialog("pairing.intro")
+
+        # HACK this gives the Mark 1 time to scroll the address and
+        # the user time to browse to the website.
+        # TODO: mouth_text() really should take an optional parameter
+        # to not scroll a second time.
+        time.sleep(7)
+        mycroft.audio.wait_while_speaking()
+
+        if not self.activator:
+            self.__create_activator()
 
     def check_for_activate(self):
         """Method is called every 10 seconds by Timer. Checks if user has
@@ -217,6 +392,7 @@ class PairingSkill(MycroftSkill):
 
         self.data = None
         self.count = -1
+        self.in_pairing = False
 
     def abort_and_restart(self, quiet=False):
         # restart pairing sequence
@@ -253,6 +429,7 @@ class PairingSkill(MycroftSkill):
         self.show_pairing(self.data.get("code"))
         self.speak_dialog("pairing.code", data)
 
+    # GUI
     def show_pairing_start(self):
         # Make sure code stays on display
         self.enclosure.deactivate_mouth_events()
