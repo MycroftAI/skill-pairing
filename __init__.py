@@ -173,6 +173,7 @@ class PairingSkill(MycroftSkill):
             self.handle_use_selene()
             return
         # keep asking user
+        sleep(2)  # it talks way too much without this delay
         self.confirmation_loop()
 
     def handle_backend_select(self, message):
