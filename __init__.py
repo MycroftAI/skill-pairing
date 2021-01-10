@@ -116,7 +116,8 @@ class PairingSkill(MycroftSkill):
             # Already paired! Just tell user
             self.speak_dialog("already.paired")
         elif not self.data:
-            self.gui.show_page("BackendSelect.qml", override_idle=True,
+            self.gui.show_page("BackendSelect.qml",
+                               override_idle=True,
                                override_animations=True)
             self.in_confirmation = True
             self.confirmation_loop()
@@ -132,7 +133,7 @@ class PairingSkill(MycroftSkill):
                     "module": self.initial_stt
                 }
             }
-            update_mycroft_config(config)
+            self.bus.emit(Message("configuration.patch", {"config": config}))
 
     def change_to_plugin(self):
         if self.initial_stt != "chromium_stt_plug":
@@ -142,8 +143,8 @@ class PairingSkill(MycroftSkill):
                     "module": "chromium_stt_plug"
                 }
             }
-            update_mycroft_config(config)
-            time.sleep(2) # allow STT to reload
+            self.bus.emit(Message("configuration.patch", {"config": config}))
+            time.sleep(5)  # allow STT to reload
 
     # backend selection
     def confirmation_loop(self):
@@ -152,16 +153,21 @@ class PairingSkill(MycroftSkill):
 
         answer = self.get_response("choose_backend", num_retries=0)
         if answer:
+            self.log.info("ANSWER: " + answer)
             if self.voc_match(answer, "no_backend"):
-                self.handle_use_mock()
+                if self.ask_yesno("confirm", {"backend": "local"}) == "yes":
+                    self.handle_use_mock()
+                    return
             elif self.voc_match(answer, "backend"):
-                self.handle_use_selene()
-            else:
-                # user said something not accounted for
-                self.speak_dialog("no_understand", wait=True)
-                # reset confirmation loop and keep asking
-                self.confirmation_counter = 0
-                self.confirmation_loop()
+                if self.ask_yesno("confirm", {"backend": "mycroft"}) == "yes":
+                    self.handle_use_selene()
+                    return
+
+            # user said something not accounted for
+            self.speak_dialog("no_understand", wait=True)
+            # reset confirmation loop and keep asking
+            self.confirmation_counter = 0
+            self.confirmation_loop()
             return
         if not self.in_confirmation:
             return  # gui event selection
@@ -220,7 +226,7 @@ class PairingSkill(MycroftSkill):
         self.in_pairing = False
         self.data = None
 
-    def enable_selene(self, send_event=True):
+    def enable_selene(self):
         config = {
                 "server": {
                     "url": "https://api.mycroft.ai",
@@ -234,10 +240,9 @@ class PairingSkill(MycroftSkill):
             }
         update_mycroft_config(config)
         self.using_mock = False
-        if send_event:
-            self.bus.emit(Message("configuration.updated"))
+        self.bus.emit(Message("configuration.patch", {"config": config}))
 
-    def enable_mock(self, send_event=True):
+    def enable_mock(self):
         url = "http://0.0.0.0:{p}".format(p=CONFIGURATION["backend_port"])
         version = CONFIGURATION["api_version"]
         config = {
@@ -254,8 +259,7 @@ class PairingSkill(MycroftSkill):
         }
         update_mycroft_config(config)
         self.using_mock = True
-        if send_event:
-            self.bus.emit(Message("configuration.updated"))
+        self.bus.emit(Message("configuration.patch", {"config": config}))
 
     # pairing
     def kickoff_pairing(self):
