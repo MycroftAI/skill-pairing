@@ -26,7 +26,7 @@ from mycroft.skills.core import MycroftSkill, intent_handler
 import mycroft.audio
 
 
-PLATFORMS_WITH_BUTTON = ('mycroft_mark_1')
+PLATFORMS_WITH_BUTTON = ('mycroft_mark_1', 'mycroft_mark_2')
 
 
 class PairingSkill(MycroftSkill):
