@@ -46,7 +46,7 @@ class PairingSkill(MycroftSkill):
         self.counter_lock = Lock()
         self.count = -1  # for repeating pairing code. -1 = not running
 
-        self.nato_dict = None
+        self.nato_alphabet = None
 
         self.mycroft_ready = False
         self.pair_dialog_lock = Lock()
@@ -57,7 +57,7 @@ class PairingSkill(MycroftSkill):
 
     def initialize(self):
         self.add_event("mycroft.not.paired", self.not_paired)
-        self.nato_dict = self.translate_namedvalues('codes')
+        self.nato_alphabet = self.translate_namedvalues('codes')
 
         # If the device isn't paired catch mycroft.ready to report
         # that the device is ready for use.
@@ -266,7 +266,7 @@ class PairingSkill(MycroftSkill):
         """Speak pairing code."""
         code = self.data.get("code")
         self.log.info("Pairing code: " + code)
-        data = {"code": '. '.join(map(self.nato_dict.get, code)) + '.'}
+        data = {"code": '. '.join(map(self.nato_alphabet.get, code)) + '.'}
 
         # Make sure code stays on display
         self.enclosure.deactivate_mouth_events()
