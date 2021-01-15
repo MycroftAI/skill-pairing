@@ -75,7 +75,7 @@ class PairingSkill(MycroftSkill):
         else:
             self.paired_dialog = 'pairing.paired.no.button'
 
-    def handle_mycroft_ready(self, message):
+    def handle_mycroft_ready(self, _):
         """Catch info that skills are loaded and ready."""
         with self.pair_dialog_lock:
             if is_paired() and self.pairing_performed:
@@ -90,7 +90,7 @@ class PairingSkill(MycroftSkill):
 
     @intent_handler(IntentBuilder("PairingIntent")
                     .require("PairingKeyword").require("DeviceKeyword"))
-    def handle_pairing(self, message=None):
+    def handle_pairing(self, _):
         if check_remote_pairing(ignore_errors=True):
             # Already paired! Just tell user
             self.speak_dialog("already.paired")
