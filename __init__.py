@@ -58,6 +58,7 @@ class PairingSkill(MycroftSkill):
     def initialize(self):
         self.add_event("mycroft.not.paired", self.not_paired)
         self.nato_alphabet = self.translate_namedvalues('codes')
+        self._select_paired_dialog()
 
         # If the device isn't paired catch mycroft.ready to report
         # that the device is ready for use.
@@ -66,6 +67,8 @@ class PairingSkill(MycroftSkill):
         if not is_paired():
             self.add_event("mycroft.ready", self.handle_mycroft_ready)
 
+    def _select_paired_dialog(self):
+        """Select the correct dialog file to communicate pairing complete."""
         platform = self.config_core['enclosure'].get('platform', 'unknown')
         if platform in PLATFORMS_WITH_BUTTON:
             self.paired_dialog = 'pairing.paired'
