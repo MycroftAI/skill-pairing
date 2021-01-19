@@ -41,7 +41,7 @@ Mycroft.Delegate {
             font.weight: Font.Bold
             font.pixelSize: 40
             visible: !content.visible
-            text: "I'm connected\nand need to be\nactivated, go to"
+            text: "I'm connected\nand need to be\nactivated, pair at"
         }
         Kirigami.Heading {
             id: example1
@@ -56,7 +56,7 @@ Mycroft.Delegate {
             font.pixelSize: 40
             visible: !content.visible
             color: "#22a7f0"
-            text: "home.mycroft.ai"
+            text: "mycroft.ai/pair"
         }
         Image {
                 id: img
