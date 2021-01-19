@@ -45,7 +45,8 @@ class PairingSkill(MycroftSkill):
     def __init__(self):
         super(PairingSkill, self).__init__("PairingSkill")
         self.api = DeviceApi()
-        self.data = None
+        self.pairing_code = None
+        self.api_access_token = None
         self.time_code_expires = None
         self.state = str(uuid4())
         self.activator = None
@@ -60,7 +61,7 @@ class PairingSkill(MycroftSkill):
 
         self.mycroft_ready = False
         self.pair_dialog_lock = Lock()
-        self.paired_dialog = 'pairing.paired'
+        self.paired_dialog = None
         self.pairing_performed = False
 
         self.pairing_code_retry_cnt = 0
@@ -102,14 +103,13 @@ class PairingSkill(MycroftSkill):
                     .require("PairingKeyword").require("DeviceKeyword"))
     def handle_pairing(self, message=None):
         """Attempt to pair the device to the Selene database."""
-        if check_remote_pairing(ignore_errors=True):
-            # Already paired! Just tell user
+        already_paired = check_remote_pairing(ignore_errors=True)
+        if already_paired:
             self.speak_dialog("already.paired")
-        elif self.data is None:
+        elif self.pairing_code is None:
             pairing_started = self._check_pairing_in_process()
             if not pairing_started:
                 self.reload_skill = False  # Prevent restart during the process
-                self.log.info("Initiating pairing sequence...")
                 self._execute_pairing_sequence()
 
     def _check_pairing_in_process(self):
@@ -128,8 +128,9 @@ class PairingSkill(MycroftSkill):
 
     def _execute_pairing_sequence(self):
         """Interact with the user to pair the device."""
+        self.log.info("Initiating device pairing sequence...")
         self._get_pairing_data()
-        if self.data is not None:
+        if self.pairing_code is not None:
             self._communicate_create_account_url()
             self._communicate_pairing_url()
 
@@ -146,9 +147,9 @@ class PairingSkill(MycroftSkill):
         """
         self.log.info('Retrieving pairing code from device API...')
         try:
-            self.data = self.api.get_code(self.state)
-            self.pairing_code = self.data['code']
-            self.api_access_token = self.data['token']
+            pairing_data = self.api.get_code(self.state)
+            self.pairing_code = pairing_data['code']
+            self.api_access_token = pairing_data['token']
         except Exception:
             self.log.exception("API call to retrieve pairing data failed")
             time.sleep(10)
@@ -213,8 +214,7 @@ class PairingSkill(MycroftSkill):
         try:
             # Attempt to activate.  If the user has completed pairing on the,
             # backend, this will succeed.  Otherwise it throws and HTTPError()
-            token = self.data.get("token")
-            login = self.api.activate(self.state, token)  # HTTPError() thrown
+            login = self.api.activate(self.state, self.api_access_token)
         except HTTPError:
             self._check_speak_code_interval()
             self._check_pairing_code_expired()
@@ -304,7 +304,8 @@ class PairingSkill(MycroftSkill):
             # the pairing process.
             with self.counter_lock:
                 self.count = -1
-            self.data = None
+            self.pairing_code = None
+            self.api_access_token = None
             self.handle_pairing()
         else:
             # trigger another check in 10 seconds
@@ -319,14 +320,13 @@ class PairingSkill(MycroftSkill):
 
     def speak_code(self):
         """Speak pairing code."""
-        code = self.data.get("code")
-        self.log.info("Pairing code: " + code)
-        data = {"code": '. '.join(map(self.nato_alphabet.get, code)) + '.'}
+        self.log.info("Pairing code: " + self.pairing_code)
+        data = {"code": '. '.join(map(self.nato_alphabet.get, self.pairing_code)) + '.'}
 
         # Make sure code stays on display
         self.enclosure.deactivate_mouth_events()
-        self.enclosure.mouth_text(self.data.get("code"))
-        self.gui['code'] = self.data.get("code")
+        self.enclosure.mouth_text(self.pairing_code)
+        self.gui['code'] = self.pairing_code
         self.gui.show_page("pairing.qml", override_idle=True)
         self.speak_dialog("pairing.code", data)
 
@@ -339,7 +339,8 @@ class PairingSkill(MycroftSkill):
         self.speak_dialog(error_dialog)
         self.bus.emit(Message("mycroft.mic.unmute", None))
 
-        self.data = None
+        self.pairing_code = None
+        self.api_access_token = None
         self.count = -1
 
     def abort_and_restart(self, quiet=False):
@@ -353,7 +354,8 @@ class PairingSkill(MycroftSkill):
         with self.counter_lock:
             self.count = -1
         self.activator = None
-        self.data = None  # Clear pairing code info
+        self.pairing_code = None
+        self.api_access_token = None
         self.log.info("Restarting pairing process")
         self.bus.emit(Message("mycroft.not.paired",
                               data={'quiet': quiet}))
@@ -368,4 +370,5 @@ class PairingSkill(MycroftSkill):
 
 
 def create_skill():
+    """Entrypoint for skill process to load the skill."""
     return PairingSkill()
