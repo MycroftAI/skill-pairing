@@ -12,22 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""Mycroft skill to pair a device to the Selene backend."""
 import time
+from requests import HTTPError
 from threading import Timer, Lock
 from uuid import uuid4
-from requests import HTTPError
 
 from adapt.intent import IntentBuilder
 
+import mycroft.audio
 from mycroft.api import DeviceApi, is_paired, check_remote_pairing
 from mycroft.identity import IdentityManager
 from mycroft.messagebus.message import Message
 from mycroft.skills.core import MycroftSkill, intent_handler
-import mycroft.audio
 
 
 PLATFORMS_WITH_BUTTON = ('mycroft_mark_1', 'mycroft_mark_2')
-PLATFORMS_WITH_GUI = ('mycroft_mark_2', )
 TWENTY_HOURS = 72000
 MAX_PAIRING_CODE_RETRIES = 30
 
@@ -165,7 +165,7 @@ class PairingSkill(MycroftSkill):
 
     def _communicate_create_account_url(self):
         """Tell the user the URL for creating an account and display it."""
-        if self.platform in PLATFORMS_WITH_GUI:
+        if self.gui.connected:
             self.log.info("Communicating account URL to user")
             self.gui['show_pair_button'] = False
             self.gui.show_page("create_account.qml", override_idle=True)
