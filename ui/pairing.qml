@@ -33,21 +33,30 @@ Mycroft.Delegate {
             anchors.fill: parent
         
             Text {
+                id: paircode
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignLeft
+                horizontalAlignment: Text.AlignHCenter
+                font.family: "Noto Sans"
+                font.weight: Font.Bold
+                fontSizeMode: Text.HorizontalFit
+                font.pixelSize: 100
+                visible: !content.visible
+                color: "white"
+                text: root.code
+            }
+            Text {
                 id: instruction
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignLeft
                 horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
-                elide: Text.ElideRight
                 font.family: "Noto Sans"
-                font.bold: true
                 font.weight: Font.Bold
                 fontSizeMode: Text.HorizontalFit
-                minimumPixelSize: 65
-                font.pixelSize: 80
+                font.pixelSize: 48
                 visible: !content.visible
-                color: "white"
-                text: root.code
+                color: "#2C3E50"
+                text: "pair at mycroft.ia/pair"
             }
         }
     }
