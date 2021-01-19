@@ -222,8 +222,17 @@ class PairingSkill(MycroftSkill):
             self.log.exception("An unexpected error occurred.")
             self.abort_and_restart()
         else:
-            self._save_identity(login)
-            self._handle_pairing_success()
+            self._handle_pairing_success(login)
+
+    def _handle_pairing_success(self, login):
+        """Steps to take after successful device activation."""
+        self._save_identity(login)
+        _stop_speaking()
+        self._display_pairing_success()
+        self.bus.emit(Message("mycroft.paired", login))
+        self.pairing_performed = True
+        self._speak_pairing_success()
+        self._cleanup_after_pairing()
 
     def _save_identity(self, login):
         """Save this device's identifying information to disk.
@@ -253,15 +262,6 @@ class PairingSkill(MycroftSkill):
             else:
                 self.log.info('Identity file saved.')
                 break
-
-    def _handle_pairing_success(self):
-        """Steps to take after successful device activation."""
-        _stop_speaking()
-        self._display_pairing_success()
-        self.bus.emit(Message("mycroft.paired", login))
-        self.pairing_performed = True
-        self._speak_pairing_success()
-        self._cleanup_after_pairing()
 
     def _display_pairing_success(self):
         """Display a pairing complete screen on GUI or clear Arduino"""
