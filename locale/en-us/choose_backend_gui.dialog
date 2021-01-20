@@ -1,0 +1,1 @@
+Open voice project supports multiple backends, A backend provides services used by mycroft core to manage your device, select a backend to view the features of the backends and confirm your backend selection.
