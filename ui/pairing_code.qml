@@ -47,7 +47,7 @@ Mycroft.Delegate {
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
                 elide: Text.ElideRight
-                font.family: "Noto Sans"
+                font.family: "Noto Sans Display"
                 font.weight: Font.ExtraBold
                 fontSizeMode: Text.HorizontalFit
                 minimumPixelSize: 65
@@ -78,7 +78,7 @@ Mycroft.Delegate {
                     verticalAlignment: Text.AlignVCenter
                     wrapMode: Text.WordWrap
                     elide: Text.ElideRight
-                    font.family: "Noto Sans"
+                    font.family: "Noto Sans Display"
                     font.weight: Font.Bold
                     font.pixelSize: root.height * 0.10
                     color: "white"
@@ -101,7 +101,7 @@ Mycroft.Delegate {
                     verticalAlignment: Text.AlignVCenter
                     wrapMode: Text.WordWrap
                     elide: Text.ElideRight
-                    font.family: "Noto Sans"
+                    font.family: "Noto Sans Display"
                     font.weight: Font.Bold
                     font.pixelSize: root.height * 0.10
                     color: "#2C3E50"

@@ -36,7 +36,7 @@ Mycroft.Delegate {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             elide: Text.ElideRight
-            font.family: "Noto Sans"
+            font.family: "Noto Sans Display"
             font.bold: true
             font.weight: Font.Bold
             font.pixelSize: 70
@@ -51,12 +51,12 @@ Mycroft.Delegate {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             elide: Text.ElideRight
-            font.family: "Noto Sans"
+            font.family: "Noto Sans Display"
             font.bold: true
             font.weight: Font.Bold
             font.pixelSize: 55
             visible: !content.visible
-            text: "What's the\nweather?"
+            text: "What's the weather?"
         }
         Kirigami.Heading {
             id: example2
@@ -65,7 +65,7 @@ Mycroft.Delegate {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             elide: Text.ElideRight
-            font.family: "Noto Sans"
+            font.family: "Noto Sans Display"
             font.bold: true
             font.weight: Font.Bold
             font.pixelSize: 55
@@ -79,12 +79,12 @@ Mycroft.Delegate {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             elide: Text.ElideRight
-            font.family: "Noto Sans"
+            font.family: "Noto Sans Display"
             font.bold: true
             font.weight: Font.Bold
             font.pixelSize: 55
             visible: !content.visible
-            text: "Play the News"
+            text: "Play the news"
         }
     }
 }  

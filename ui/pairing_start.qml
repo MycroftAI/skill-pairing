@@ -64,7 +64,7 @@ Mycroft.Delegate {
                     verticalAlignment: horizontalMode ? Text.AlignVCenter : Text.AlignTop
                     wrapMode: Text.WordWrap
                     elide: Text.ElideRight
-                    font.family: "Noto Sans"
+                    font.family: "Noto Sans Display"
                     font.weight: Font.Bold
                     font.pixelSize: horizontalMode ? root.width * 0.050 : root.height * 0.065
                     text: "I need to be activated, pair at"
@@ -78,7 +78,7 @@ Mycroft.Delegate {
                     verticalAlignment: horizontalMode ? Text.AlignVCenter : Text.AlignTop
                     wrapMode: Text.WordWrap
                     elide: Text.ElideRight
-                    font.family: "Noto Sans"
+                    font.family: "Noto Sans Display "
                     font.weight: Font.Bold
                     font.pixelSize: horizontalMode ? root.width * 0.050 : root.height * 0.065
                     color: "#22a7f0"
