@@ -22,51 +22,68 @@ import org.kde.kirigami 2.4 as Kirigami
 
 import Mycroft 1.0 as Mycroft
 
+/* Define a screen requesting that a user create an account before pairing. */
 Mycroft.Delegate {
     id: root
+    leftPadding: 0
+    rightPadding: 0
+    bottomPadding: 0
+    topPadding: 0
+
     Rectangle {
+        id: background
         color: "#22a7f0"
         width: parent.width
         height: parent.height
-        ColumnLayout {
+
+        Item {
+            id: instructions
             anchors.fill: parent
-        
-            Text {
-                id: createacct
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignLeft
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
-                elide: Text.ElideRight
-                font.family: "Noto Sans"
-                font.weight: Font.Bold
-                fontSizeMode: Text.HorizontalFit
-                minimumPixelSize: 65
-                font.pixelSize: 80
-                visible: !content.visible
-                color: "white"
-                text: "Create a Mycroft account"
-                height: 300
+            anchors.margins: Kirigami.Units.largeSpacing
+
+            Item {
+                id: instructionItem
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.topMargin: 36
+                height: instructionText.paintedHeight
+
+                Text {
+                    id: instructionText
+                    width: parent.width
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    elide: Text.ElideRight
+                    font.family: "Noto Sans"
+                    font.weight: Font.Bold
+                    fontSizeMode: Text.HorizontalFit
+                    minimumPixelSize: 70
+                    font.pixelSize: Math.max(root.height * 0.25, minimumPixelSize)
+                    color: "white"
+                    text: "Create a Mycroft account"
+                }
             }
-            Text {
-                id: createaccturl
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignLeft
-                horizontalAlignment: Text.AlignHCenter
-                font.family: "Noto Sans"
-                font.weight: Font.Bold
-                fontSizeMode: Text.HorizontalFit
-                minimumPixelSize: 48
-                font.pixelSize: 48
-                visible: !content.visible
-                color: "#2C3E50"
-                text: "account.mycroft.ai"
-            }
-            Button {
-                id: pairbutton
-                text: "PAIR THIS DEVICE"
-                onClicked: triggerGuiEvent("pairing-skill.account-created", {})
-                visible: true
+            Item {
+                id: urlItem
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: instructionItem.bottom
+                anchors.topMargin: 36
+                height: urlText.paintedHeight
+
+                Text {
+                    id: urlText
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignTop
+                    width: parent.width
+                    font.family: "Noto Sans"
+                    font.weight: Font.Bold
+                    fontSizeMode: Text.HorizontalFit
+                    font.pixelSize: root.height * 0.10
+                    color: "#2C3E50"
+                    text: "account.mycroft.ai"
+                }
             }
         }
     }
