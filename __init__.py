@@ -321,6 +321,8 @@ class PairingSkill(MycroftSkill):
     def _display_pairing_success(self):
         """Display a pairing complete screen on GUI or clear Arduino"""
         if self.gui.connected:
+            self.gui.show_page("pairing_success.qml", override_idle=True)
+            time.sleep(3)
             self.gui.show_page("pairing_done.qml", override_idle=False)
         else:
             self.enclosure.activate_mouth_events()  # clears the display
