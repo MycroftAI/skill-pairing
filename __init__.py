@@ -20,7 +20,8 @@ from requests import HTTPError
 from os.path import join, dirname
 from ovos_utils.configuration import update_mycroft_config
 from ovos_utils.skills import blacklist_skill
-from ovos_utils.waiting_for_mycroft.base_skill import killable_intent, MycroftSkill
+from ovos_utils.waiting_for_mycroft.base_skill import killable_intent, \
+    MycroftSkill, killable_event
 from ovos_local_backend.configuration import CONFIGURATION
 from adapt.intent import IntentBuilder
 from time import sleep
@@ -28,11 +29,11 @@ from mycroft.api import DeviceApi, is_paired, check_remote_pairing
 from mycroft.identity import IdentityManager
 from mycroft.messagebus.message import Message
 from mycroft.skills.core import intent_handler
+from mycroft.util.signal import create_signal
 import mycroft.audio
 
 
 class PairingSkill(MycroftSkill):
-
     poll_frequency = 5  # secs between checking server for activation
 
     def __init__(self):
@@ -66,19 +67,28 @@ class PairingSkill(MycroftSkill):
         self.confirm_selection_done = False
         self.confirm_stt_selection_done = False
         self.confirmation_counter = 0
-        self.using_mock = self.config_core["server"]["url"] != "https://api.mycroft.ai"
+        self.using_mock = self.config_core["server"][
+                              "url"] != "https://api.mycroft.ai"
 
     # startup
     def initialize(self):
         self.add_event("mycroft.not.paired", self.not_paired)
+        self.add_event("mycroft.device.set.backend",
+                       self.handle_backend_selected_event)
+        self.add_event("mycroft.device.confirm.backend",
+                       self.handle_backend_confirmation_event)
+        self.add_event("mycroft.return.select.backend",
+                       self.handle_return_event)
+        self.add_event("mycroft.device.confirm.stt", self.select_stt)
+        # duplicate events for GUI interaction
         self.gui.register_handler("mycroft.device.set.backend",
-                                  self.handle_backend_select)
+                                  self.handle_backend_selected_event)
         self.gui.register_handler("mycroft.device.confirm.backend",
-                            self.handle_confirm_backend)
+                                  self.handle_backend_confirmation_event)
         self.gui.register_handler("mycroft.return.select.backend",
-                                  self.handle_return_select_backend)
+                                  self.handle_return_event)
         self.gui.register_handler("mycroft.device.confirm.stt",
-                                  self.handle_local_backend_confirm_stt)
+                                  self.select_stt)
         self.nato_dict = self.translate_namedvalues('codes')
 
         # If the device isn't paired catch mycroft.ready to report
@@ -92,20 +102,24 @@ class PairingSkill(MycroftSkill):
         blacklist_skill("mycroft-pairing.mycroftai")
 
         self.make_active()  # to enable converse
-        
-    def handle_intent_aborted(self):
-        #mycroft.audio.stop_speaking()
-        self.log.info("killing all dialogs")
-        
-    def yesno(self, prompt, data=None):
-            resp = self.get_response(dialog=prompt, data=data, num_retries=0)
 
-            if self.voc_match(resp, 'yes'):
-                return 'yes'
-            elif self.voc_match(resp, 'no'):
-                return 'no'
-            else:
-                return resp
+    def send_stop_signal(self, stop_event=None, should_sleep=True):
+        # stop the previous event execution
+        if stop_event:
+            self.bus.emit(Message(stop_event))
+        # stop TTS
+        self.bus.emit(Message("mycroft.audio.speech.stop"))
+        if should_sleep:
+            # STT might continue recording and screw up the next get_response
+            # TODO make mycroft-core allow aborting recording in a sane way
+            self.bus.emit(Message('mycroft.mic.mute'))
+            sleep(0.5)  # if TTS had not yet started
+            self.bus.emit(Message("mycroft.audio.speech.stop"))
+            sleep(1.5)  # the silence from muting should make STT stop recording
+            self.bus.emit(Message('mycroft.mic.unmute'))
+
+    def handle_intent_aborted(self):
+        self.log.info("killing all dialogs")
 
     def not_paired(self, message):
         if not message.data.get('quiet', True):
@@ -119,62 +133,32 @@ class PairingSkill(MycroftSkill):
         self.gui.release()
 
     # voice events
-    #def converse(self, utterances, lang=None):
-        #if self.in_pairing and "pair my device" in utterances:
-            #mycroft-core emits this, let's capture it because we are
-            #handling pairing already
-            #return True
-        #return False
+    def converse(self, utterances, lang=None):
+        if self.in_pairing:
+            return True
+        return False
 
     @intent_handler(IntentBuilder("PairingIntent")
                     .require("PairingKeyword").require("DeviceKeyword"))
     def handle_pairing(self, message=None):
         self.in_pairing = True
+
         if self.initial_stt == "mycroft":
             # STT not available, temporarily set chromium plugin
             self.change_to_plugin()
 
         if self.using_mock:
             # user triggered intent, wants to enable pairing
-            self.handle_use_selene()
+            self.select_selene()
         elif check_remote_pairing(ignore_errors=True):
             # Already paired! Just tell user
             self.speak_dialog("already.paired")
-            
         elif not self.data:
-            if not self.selection_done:
-                self.log.info("Selection not done")
-                self.pairing_process_state = 1
-                self.gui.show_page("BackendSelect.qml",
-                            override_idle=True,
-                            override_animations=True)
-                self.in_confirmation = True
-                self.pairing_selection_state("BackendSelect", wait=0)
+            self.pairing_process_state = 1
+            self.in_confirmation = True
+            self.handle_backend_menu()
 
-    @killable_intent(callback=handle_intent_aborted)
-    def pairing_selection_state(self, status, wait=0):
-        # Create a timeout and status check for each page
-        self.log.info(self.selection_done)
-        if not self.selection_done:
-            sleep(int(wait))
-            if status == "BackendSelect" and not self.selection_done:
-                self.speak_dialog("choose_backend_gui")
-                sleep(2)
-                if self.yesno("confirm", {"backend": "mycroft"}) == "yes":
-                    self.handle_backend_select(selection="mycroft")
-                    pass
-                elif self.yesno("confirm", {"backend": "local"}) == "yes":
-                    self.handle_backend_select(selection="local")
-                    pass
-                else:
-                    self.speak_dialog("choice-failed")
-                    self.pairing_selection_state("BackendSelect", wait=30)
-        else:
-            self.log.info("Selection is done manually skipping")
-            self.log.info(self.selection_done)
-            pass
-
-    # stt handling
+    # config handling
     def change_to_default(self):
         if self.initial_stt != "chromium_stt_plug":
             self.log.info("restoring STT configuration")
@@ -195,168 +179,23 @@ class PairingSkill(MycroftSkill):
             }
             self.bus.emit(Message("configuration.patch", {"config": config}))
             time.sleep(5)  # allow STT to reload
-            
+
     def change_to_kaldi(self):
         self.log.info("not implemented")
-
-    @killable_intent(callback=handle_intent_aborted)
-    def handle_backend_select(self, message=None, selection=None):
-        # GUI selection event
-        if not selection:
-            backend = message.data["backend"]
-            self.stop()
-        else:
-            backend = selection
-        self.in_confirmation = False
-        self.confirmation_counter = 0
-        self.selection_done = True
-        self.gui.remove_page("BackendSelect.qml")
-        self.pairing_process_state = 2
-        mycroft.audio.stop_speaking()
-        self.bus.emit(Message("mycroft.skills.abort_question"))
-        if backend == "local":
-            self.gui.show_page("BackendLocal.qml", override_idle=True, override_animations=True)
-            self.selection_confirmation_state("ConfirmBackendSelect", wait=0, selection="local")
-        else:
-            self.gui.show_page("BackendMycroft.qml", override_idle=True, override_animations=True)
-            self.selection_confirmation_state("ConfirmBackendSelect", wait=0, selection="mycroft")
-    
-    @killable_intent(callback=handle_intent_aborted)
-    def selection_confirmation_state(self, status, wait=0, selection=None):
-        # Create a timeout and status check for stt selection page
-        self.log.info(self.confirm_selection_done)
-        if not self.confirm_selection_done:
-            sleep(int(wait))
-            if status == "ConfirmBackendSelect" and not self.confirm_selection_done:
-                if selection == "mycroft":
-                    self.speak_dialog("selected_mycroft_backend")
-                    if self.yesno("confirm_backend", {"backend": "mycroft"}) == "yes":
-                        self.handle_backend_select(selection="mycroft")
-                        pass
-                    else:
-                        self.speak_dialog("choice-failed")
-                        self.selection_confirmation_state("ConfirmBackendSelect", wait=30, selection=selection)
-                elif selection == "local":
-                    self.speak_dialog("selected_local_backend")
-                    if self.yesno("confirm_backend", {"backend": "local"}) == "yes":
-                        self.handle_backend_select(selection="local")
-                        pass
-                    else:
-                        self.speak_dialog("choice-failed")
-                        self.selection_confirmation_state("ConfirmBackendSelect", wait=30, selection=selection)
-                else:
-                    self.speak_dialog("choice-failed")
-                    self.selection_confirmation_state("ConfirmBackendSelect", wait=30, selection=selection)
-        else:
-            self.log.info("Confirm selection is done manually skipping")
-            self.log.info(self.confirm_selection_done)
-            pass
-    
-    @killable_intent(callback=handle_intent_aborted)
-    def handle_confirm_backend(self, message):
-        mycroft.audio.stop_speaking()
-        self.bus.emit(Message("mycroft.skills.abort_question"))
-        backend = message.data["backend"]
-        self.in_confirmation = False
-        self.confirmation_counter = 0
-        if backend == "local":
-            self.handle_use_mock(message)
-        else:
-            self.handle_use_selene(message)
-    
-    @killable_intent(callback=handle_intent_aborted)
-    def handle_return_select_backend(self, message):
-        page = message.data["page"]
-        self.in_confirmation = False
-        self.selection_done = False
-        self.confirmation_counter = 0
-        if page == "mycroft":
-            self.gui.remove_page("BackendMycroft.qml")
-        else:
-            self.gui.remove_page("BackendLocal.qml")
-        mycroft.audio.stop_speaking()
-        self.bus.emit(Message("mycroft.skills.abort_question"))
-        self.gui.show_page("BackendSelect.qml", override_idle=True, override_animations=True)
-        self.pairing_selection_state("BackendSelect", wait=0)
-
-    def handle_use_selene(self, message=None):
-        # selene selected
-        self.speak_dialog("mycroft", wait=True)
-        self.gui.remove_page("BackendMycroft.qml")
-        self.confirmation_counter = 0
-        if self.using_mock:
-            self.enable_selene()
-            self.data = None
-            # TODO restart
-
-        if check_remote_pairing(ignore_errors=True):
-            # Already paired! Just tell user
-            self.speak_dialog("already.paired")
-            self.in_pairing = False
-        elif not self.data:
-            # continue to normal pairing process
-            self.kickoff_pairing()
-
-    @killable_intent(callback=handle_intent_aborted)
-    def handle_use_mock(self, message=None):
-        # mock backend selected
-        self.gui.remove_page("BackendLocal.qml")
-        self.gui.show_page("BackendLocalConfig.qml", override_idle=True, override_animations=True)
-        self.speak_dialog("local", wait=True)
-        self.in_pairing = False
-        self.data = None
-        self.stt_confirmation_state("ConfirmSttSelect", wait=0)
-
-    @killable_intent(callback=handle_intent_aborted)
-    def stt_confirmation_state(self, status, wait=0, selection=None):
-        # Create a timeout and status check for confirm selection page
-        self.log.info(self.confirm_stt_selection_done)
-        if not self.confirm_stt_selection_done:
-            sleep(int(wait))
-            if status == "ConfirmSttSelect" and not self.confirm_stt_selection_done:
-                self.speak_dialog("select_mycroft_stt")
-                if self.yesno("confirm_stt", {"stt": "google"}) == "yes":
-                    self.handle_local_backend_confirm_stt(selection="google")
-                    pass
-                elif self.yesno("confirm_stt", {"stt": "kaldi"}) == "yes":
-                    self.handle_local_backend_confirm_stt(selection="kaldi")
-                    pass
-                else:
-                    self.speak_dialog("choice-failed")
-                    self.stt_confirmation_state("ConfirmSttSelect", wait=30)
-            else:
-                self.log.info("STT selection is done manually skipping")
-                self.log.info(self.confirm_selection_done)
-                pass
-
-    @killable_intent(callback=handle_intent_aborted)
-    def handle_local_backend_confirm_stt(self, message=None, selection=None):
-        if selection == "google":
-            self.change_to_plugin()
-        elif selection == "kaldi":
-            self.change_to_kaldi()
-        self.confirmation_counter = 0
-        self.gui.remove_page("BackendLocalConfig.qml")
-        self.gui.show_page("BackendLocalRestart.qml", override_idle=True, override_animations=True)
-        mycroft.audio.stop_speaking()
-        self.bus.emit(Message("mycroft.skills.abort_question"))
-        #if not self.using_mock:
-            #self.enable_mock()
-            # TODO restart        
 
     def enable_selene(self):
         self.change_to_default()
         config = {
-                "server": {
-                    "url": "https://api.mycroft.ai",
-                    "version": "v1"
-                },
-                "listener": {
-                    "wake_word_upload": {
-                        "url": "https://training.mycroft.ai/precise/upload"
-                    }
+            "server": {
+                "url": "https://api.mycroft.ai",
+                "version": "v1"
+            },
+            "listener": {
+                "wake_word_upload": {
+                    "url": "https://training.mycroft.ai/precise/upload"
                 }
             }
+        }
         update_mycroft_config(config)
         self.using_mock = False
         self.bus.emit(Message("configuration.patch", {"config": config}))
@@ -379,6 +218,166 @@ class PairingSkill(MycroftSkill):
         update_mycroft_config(config)
         self.using_mock = True
         self.bus.emit(Message("configuration.patch", {"config": config}))
+
+    # Pairing GUI events
+    #### Backend selection menu
+    @killable_event(msg="pairing.backend.menu.stop")
+    def handle_backend_menu(self, wait=0):
+        self.gui.show_page("BackendSelect.qml", override_idle=True,
+                           override_animations=True)
+        self.send_stop_signal("pairing.confirmation.stop")
+        sleep(int(wait))
+        self.speak_dialog("select_backend", wait=True)
+        self.speak_dialog("backend", wait=True)
+        sleep(1)
+        answer = self.get_response("choose_backend", num_retries=0)
+        if answer:
+            self.log.info("ANSWER: " + answer)
+            if self.voc_match(answer, "no_backend"):
+                self.bus.emit(Message("mycroft.device.set.backend",
+                                      {"backend": "local"}))
+                return
+            elif self.voc_match(answer, "backend"):
+                self.bus.emit(Message("mycroft.device.set.backend",
+                                      {"backend": "selene"}))
+                return
+            else:
+                self.speak_dialog("no_understand", wait=True)
+
+        sleep(1)  # time for abort to kick in
+        # (answer will be None and return before this is killed)
+        self.handle_backend_menu(wait=15)
+
+    def handle_backend_selected_event(self, message):
+        self.send_stop_signal("pairing.backend.menu.stop", should_sleep=False)
+        self.in_confirmation = False
+        self.confirmation_counter = 0
+        self.selection_done = True
+        self.pairing_process_state = 2
+        self.handle_backend_confirmation(message.data["backend"])
+
+    def handle_return_event(self, message):
+        self.send_stop_signal("pairing.confirmation.stop", should_sleep=False)
+        page = message.data["page"]
+        self.in_confirmation = False
+        self.selection_done = False
+        self.confirmation_counter = 0
+        if page == "selene":
+            self.gui.remove_page("BackendMycroft.qml")
+        else:
+            self.gui.remove_page("BackendLocal.qml")
+        self.handle_backend_menu()
+
+    ### Backend confirmation
+    @killable_event(msg="pairing.confirmation.stop",
+                    callback=handle_intent_aborted)
+    def handle_backend_confirmation(self, selection):
+        self.log.info("SELECTED: " + selection)
+        self.gui.remove_page("BackendSelect.qml")
+        if selection == "local":
+            self.gui.show_page("BackendLocal.qml", override_idle=True,
+                               override_animations=True)
+        else:
+            self.gui.show_page("BackendMycroft.qml", override_idle=True,
+                               override_animations=True)
+
+        if selection == "selene":
+            self.speak_dialog("selected_mycroft_backend", wait=True)
+            # NOTE response might be None
+            answer = self.ask_yesno("confirm_backend",
+                                      {"backend": "mycroft"})
+            if answer == "yes":
+                self.bus.emit(Message("mycroft.device.confirm.backend",
+                                      {"backend": "selene"}))
+                return
+            elif answer == "no":
+                self.bus.emit(Message("mycroft.return.select.backend",
+                                      {"page": "local"}))
+                return
+        elif selection == "local":
+            self.speak_dialog("selected_local_backend", wait=True)
+            # NOTE response might be None
+            answer = self.ask_yesno("confirm_backend",
+                                      {"backend": "local"})
+            if answer == "yes":
+                self.bus.emit(Message("mycroft.device.confirm.backend",
+                                      {"backend": "local"}))
+                return
+            if answer == "no":
+                self.bus.emit(Message("mycroft.return.select.backend",
+                                      {"page": "selene"}))
+                return
+        sleep(5)  # time for abort to kick in
+        # (answer will be None and return before this is killed)
+        self.handle_backend_confirmation(selection)
+
+    def handle_backend_confirmation_event(self, message):
+        self.send_stop_signal("pairing.confirmation.stop")
+        self.in_confirmation = False
+        self.confirmation_counter = 0
+        if message.data["backend"] == "local":
+            self.select_local()
+        else:
+            self.select_selene()
+
+    def select_selene(self):
+        # selene selected
+
+        self.gui.remove_page("BackendMycroft.qml")
+        self.confirmation_counter = 0
+        if self.using_mock:
+            self.enable_selene()
+            self.data = None
+            # TODO needs to restart, user wants to change back to selene
+            # eg, local was selected and at some point user said
+            # "pair my device"
+
+        if check_remote_pairing(ignore_errors=True):
+            # Already paired! Just tell user
+            self.speak_dialog("already.paired")
+            self.in_pairing = False
+        elif not self.data:
+            # continue to normal pairing process
+            self.kickoff_pairing()
+
+    def select_local(self, message=None):
+        # mock backend selected
+
+        self.data = None
+        self.handle_stt_menu()
+
+    ### STT selection
+    @killable_event(msg="pairing.stt.menu.stop",
+                    callback=handle_intent_aborted)
+    def handle_stt_menu(self):
+        self.gui.remove_page("BackendLocal.qml")
+        self.gui.show_page("BackendLocalConfig.qml", override_idle=True,
+                           override_animations=True)
+        self.send_stop_signal("pairing.confirmation.stop")
+
+        self.speak_dialog("select_mycroft_stt")
+        if self.ask_yesno("confirm_stt", {"stt": "google"}) == "yes":
+            self.select_stt(selection="google")
+        elif self.ask_yesno("confirm_stt", {"stt": "kaldi"}) == "yes":
+            self.select_stt(selection="kaldi")
+        else:
+            self.speak_dialog("choice-failed")
+            self.handle_stt_menu()
+
+    def select_stt(self, selection=None):
+        self.send_stop_signal("pairing.stt.menu.stop")
+        if selection == "google":
+            self.change_to_plugin()
+        elif selection == "kaldi":
+            self.change_to_kaldi()
+        self.confirmation_counter = 0
+        self.gui.remove_page("BackendLocalConfig.qml")
+        self.gui.show_page("BackendLocalRestart.qml", override_idle=True,
+                           override_animations=True)
+        # if not self.using_mock:
+        # self.enable_mock()
+        # TODO restart
+        self.in_pairing = False
 
     # pairing
     def kickoff_pairing(self):
@@ -558,7 +557,8 @@ class PairingSkill(MycroftSkill):
         # Make sure code stays on display
         self.enclosure.deactivate_mouth_events()
         self.enclosure.mouth_text(self.settings["pairing_url"] + "      ")
-        self.gui.show_page("pairing_start.qml", override_idle=True, override_animations=True)
+        self.gui.show_page("pairing_start.qml", override_idle=True,
+                           override_animations=True)
 
     def show_pairing(self, code):
         self.gui.remove_page("pairing_start.qml")
@@ -567,7 +567,8 @@ class PairingSkill(MycroftSkill):
         self.gui["txtcolor"] = self.settings["color"]
         self.gui["backendurl"] = self.settings["pairing_url"]
         self.gui["code"] = code
-        self.gui.show_page("pairing.qml", override_idle=True, override_animations=True)
+        self.gui.show_page("pairing.qml", override_idle=True,
+                           override_animations=True)
 
     def show_pairing_success(self):
         self.enclosure.activate_mouth_events()  # clears the display
@@ -575,11 +576,13 @@ class PairingSkill(MycroftSkill):
         self.gui["status"] = "Success"
         self.gui["label"] = "Device Paired"
         self.gui["bgColor"] = "#40DBB0"
-        self.gui.show_page("status.qml", override_idle=True, override_animations=True)
+        self.gui.show_page("status.qml", override_idle=True,
+                           override_animations=True)
         # allow GUI to linger around for a bit
         sleep(5)
         self.gui.remove_page("status.qml")
-        self.gui.show_page("loading.qml", override_idle=True, override_animations=True)
+        self.gui.show_page("loading.qml", override_idle=True,
+                           override_animations=True)
 
     def show_pairing_fail(self):
         self.gui.release()

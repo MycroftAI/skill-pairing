@@ -99,7 +99,8 @@ Mycroft.Delegate {
                     }
                         
                     onClicked: {
-                        triggerGuiEvent("mycroft.device.set.backend", {"backend": "default"})
+                        triggerGuiEvent("mycroft.device.set.backend",
+                        {"backend": "selene"})
                     }
                 }
                 

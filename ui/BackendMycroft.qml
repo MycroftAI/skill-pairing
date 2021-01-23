@@ -142,7 +142,8 @@ Mycroft.Delegate {
                 }
                 
                 onClicked: {
-                    triggerGuiEvent("mycroft.return.select.backend", {"page": "mycroft"})
+                    triggerGuiEvent("mycroft.return.select.backend",
+                    {"page": "selene"})
                 }
             }
             
@@ -164,7 +165,8 @@ Mycroft.Delegate {
                 }
                 
                 onClicked: {
-                    triggerGuiEvent("mycroft.device.confirm.backend", {"backend": "default"})
+                    triggerGuiEvent("mycroft.device.confirm.backend",
+                    {"backend": "selene"})
                 }
             }
         }
