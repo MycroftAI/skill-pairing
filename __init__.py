@@ -49,7 +49,6 @@ class PairingSkill(MycroftSkill):
         self.state = str(uuid4())
         self.platform = None
         self.nato_alphabet = None
-        self.counter_lock = Lock()
         self.mycroft_ready = False
         self.pairing_code_retry_cnt = 0
         self.account_creation_requested = False
@@ -75,7 +74,9 @@ class PairingSkill(MycroftSkill):
         self.add_event("mycroft.not.paired", self.not_paired)
         self.nato_alphabet = self.translate_namedvalues('codes')
         # TODO replace self.platform logic with call to enclosure capabilities
-        self.platform = self.config_core['enclosure'].get('platform', 'unknown')
+        self.platform = self.config_core['enclosure'].get(
+            'platform', 'unknown'
+        )
         self._select_paired_dialog()
 
         # If the device isn't paired catch mycroft.ready to report
@@ -113,7 +114,9 @@ class PairingSkill(MycroftSkill):
         already_paired = check_remote_pairing(ignore_errors=True)
         if already_paired:
             self.speak_dialog("already.paired")
-            self.log.info("Pairing skill invoked but device is paired, exiting")
+            self.log.info(
+                "Pairing skill invoked but device is paired, exiting"
+            )
         elif self.pairing_code is None:
             start_pairing = self._check_pairing_in_progress()
             if start_pairing:
@@ -192,9 +195,9 @@ class PairingSkill(MycroftSkill):
         if self.pairing_code_retry_cnt < MAX_PAIRING_CODE_RETRIES:
             time.sleep(10)
             self.pairing_code_retry_cnt += 1
-            self.restart_pairing(quiet=True)
+            self._restart_pairing(quiet=True)
         else:
-            self.end_pairing('connection.error')
+            self._end_pairing('connection.error')
             self.pairing_code_retry_cnt = 0
 
     def _communicate_pairing_url(self):
@@ -260,7 +263,7 @@ class PairingSkill(MycroftSkill):
             self._handle_not_yet_activated()
         except Exception:
             self.log.exception("An unexpected error occurred.")
-            self.restart_pairing()
+            self._restart_pairing()
         else:
             self._handle_activation(login)
 
@@ -313,7 +316,7 @@ class PairingSkill(MycroftSkill):
                         "Restarting the pairing sequence..."
                     )
                     self.log.exception(log_msg)
-                    self.restart_pairing()
+                    self._restart_pairing()
             else:
                 self.log.info('Identity file saved.')
                 break
@@ -341,7 +344,7 @@ class PairingSkill(MycroftSkill):
                 self.speak_dialog("wait.for.startup")
                 mycroft.audio.wait_while_speaking()
 
-    def end_pairing(self, error_dialog):
+    def _end_pairing(self, error_dialog):
         """Resets the pairing and don't restart it.
 
         Arguments:
@@ -351,7 +354,7 @@ class PairingSkill(MycroftSkill):
         self.bus.emit(Message("mycroft.mic.unmute", None))
         self._reset_pairing_attributes()
 
-    def restart_pairing(self, quiet=False):
+    def _restart_pairing(self, quiet=False):
         """Resets the pairing and don't restart it.
 
         Arguments:
