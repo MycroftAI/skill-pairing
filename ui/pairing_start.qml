@@ -25,7 +25,7 @@ import Mycroft 1.0 as Mycroft
 /* Define a screen instructing user to a URL for pairing */
 Mycroft.Delegate {
     id: root
-    property var spacingUnit: 30
+    property var spacingUnit: 10
     property bool horizontalMode: root.width > root.height ? 1 : 0
     leftPadding: 0
     rightPadding: 0
@@ -38,7 +38,6 @@ Mycroft.Delegate {
 
         GridLayout {
             anchors.fill: parent
-            anchors.margins: Kirigami.Units.largeSpacing
             columns: horizontalMode ? 2 : 1
 
             Image {
@@ -78,11 +77,11 @@ Mycroft.Delegate {
                     verticalAlignment: horizontalMode ? Text.AlignVCenter : Text.AlignTop
                     wrapMode: Text.WordWrap
                     elide: Text.ElideRight
-                    font.family: "Noto Sans Display "
+                    font.family: "Noto Sans Display"
                     font.weight: Font.Bold
-                    font.pixelSize: horizontalMode ? root.width * 0.050 : root.height * 0.065
+                    font.pixelSize: horizontalMode ? root.width * 0.035 : root.height * 0.05
                     color: "#22a7f0"
-                    text: "mycroft.ai/pair"
+                    text: "account.mycroft.ai/pair"
                 }
             }
         }
