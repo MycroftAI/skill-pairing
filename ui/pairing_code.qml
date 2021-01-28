@@ -68,7 +68,7 @@ Mycroft.Delegate {
                 anchors.top: screenCenter.bottom
                 anchors.left: parent.left
                 anchors.topMargin: 24
-                width: parent.width / 3
+                width: parent.width / 4
                 height: pairAtText.paintedHeight
 
                 Text {
@@ -80,7 +80,7 @@ Mycroft.Delegate {
                     elide: Text.ElideRight
                     font.family: "Noto Sans Display"
                     font.weight: Font.Bold
-                    font.pixelSize: root.height * 0.10
+                    font.pixelSize: root.height * 0.08
                     color: "white"
                     text: "pair at"
                 }
@@ -103,9 +103,9 @@ Mycroft.Delegate {
                     elide: Text.ElideRight
                     font.family: "Noto Sans Display"
                     font.weight: Font.Bold
-                    font.pixelSize: root.height * 0.10
+                    font.pixelSize: root.height * 0.08
                     color: "#2C3E50"
-                    text: "mycroft.ai/pair"
+                    text: "account.mycroft.ai/pair"
                 }
             }
         }
