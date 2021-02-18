@@ -130,7 +130,11 @@ class PairingSkill(MycroftSkill):
         """Catch info that skills are loaded and ready."""
         self.mycroft_ready = True
         self.gui.remove_page("loading.qml")
-        self.gui.release()
+        #don't do a full release because of bug with using self.gui.clear() in self.gui.release()
+        #self.gui.release()
+        #call mycroft.gui.screen.close directly over messagebus
+        self.bus.emit(Message("mycroft.gui.screen.close",
+                              {"skill_id": self.skill_id}))
 
     # voice events
     def converse(self, utterances, lang=None):
@@ -581,7 +585,7 @@ class PairingSkill(MycroftSkill):
         # allow GUI to linger around for a bit
         sleep(5)
         self.gui.remove_page("status.qml")
-        self.gui.show_page("loading.qml", override_animations=True)
+        self.gui.show_page("loading.qml", override_idle=True, override_animations=True)
 
     def show_pairing_fail(self):
         self.gui.release()
