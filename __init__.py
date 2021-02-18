@@ -581,8 +581,7 @@ class PairingSkill(MycroftSkill):
         # allow GUI to linger around for a bit
         sleep(5)
         self.gui.remove_page("status.qml")
-        self.gui.show_page("loading.qml", override_idle=True,
-                           override_animations=True)
+        self.gui.show_page("loading.qml", override_animations=True)
 
     def show_pairing_fail(self):
         self.gui.release()
