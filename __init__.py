@@ -19,7 +19,7 @@ from uuid import uuid4
 from requests import HTTPError
 from os.path import join, dirname
 from ovos_utils.configuration import update_mycroft_config
-from ovos_utils.skills import blacklist_skill
+from ovos_utils.skills import blacklist_skill, make_priority_skill
 from ovos_utils.waiting_for_mycroft.base_skill import killable_intent, \
     MycroftSkill, killable_event
 from ovos_local_backend.configuration import CONFIGURATION
@@ -29,7 +29,7 @@ from mycroft.api import DeviceApi, is_paired, check_remote_pairing
 from mycroft.identity import IdentityManager
 from mycroft.messagebus.message import Message
 from mycroft.skills.core import intent_handler
-from mycroft.util.signal import create_signal
+from mycroft.util import create_daemon, connected
 import mycroft.audio
 
 
@@ -91,17 +91,35 @@ class PairingSkill(MycroftSkill):
                                   self.select_stt)
         self.nato_dict = self.translate_namedvalues('codes')
 
-        # If the device isn't paired catch mycroft.ready to report
-        # that the device is ready for use.
-        # This assumes that the pairing skill is loaded as a priority skill
-        # before the rest of the skills are loaded.
-        if not is_paired():
+        paired = is_paired()
+
+        if not paired:
+            # If the device isn't paired catch mycroft.ready to report
+            # that the device is ready for use.
+            # This assumes that the pairing skill is loaded as a priority skill
+            # before the rest of the skills are loaded.
             self.add_event("mycroft.ready", self.handle_mycroft_ready)
 
-        # blacklist conflicting skills
+        # make priority skill if needed
+        make_priority_skill(self.skill_id)
+        # blacklist conflicting skill
         blacklist_skill("mycroft-pairing.mycroftai")
 
         self.make_active()  # to enable converse
+
+        # show loading screen once wifi setup ends
+        if not connected():
+            self.bus.once("ovos.wifi.setup.completed", self.show_loading_screen)
+        elif paired:
+            # show loading screen right away
+            # device has been paired and there is internet,
+            # this is a priority skill which means mycroft is still loading
+            # when this is called
+            # NOTE this should be the first priority skill
+            self.show_loading_screen()
+
+    def show_loading_screen(self, message=None):
+        self.gui.show_page("LoadingScreen.qml", override_animations=True)
 
     def send_stop_signal(self, stop_event=None, should_sleep=True):
         # stop the previous event execution
@@ -129,7 +147,7 @@ class PairingSkill(MycroftSkill):
     def handle_mycroft_ready(self, message):
         """Catch info that skills are loaded and ready."""
         self.mycroft_ready = True
-        self.gui.remove_page("loading.qml")
+        self.gui.remove_page("InstallingSkills.qml")
         #don't do a full release because of bug with using self.gui.clear() in self.gui.release()
         #self.gui.release()
         #call mycroft.gui.screen.close directly over messagebus
@@ -139,6 +157,8 @@ class PairingSkill(MycroftSkill):
     # voice events
     def converse(self, utterances, lang=None):
         if self.in_pairing:
+            # capture all utterances until paired
+            # prompts from this skill are handled with get_response
             return True
         return False
 
@@ -585,7 +605,7 @@ class PairingSkill(MycroftSkill):
         # allow GUI to linger around for a bit
         sleep(5)
         self.gui.remove_page("status.qml")
-        self.gui.show_page("loading.qml", override_idle=True, override_animations=True)
+        self.gui.show_page("InstallingSkills.qml", override_idle=True, override_animations=True)
 
     def show_pairing_fail(self):
         self.gui.release()
