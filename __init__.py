@@ -38,6 +38,7 @@ class PairingSkill(MycroftSkill):
 
     def __init__(self):
         super(PairingSkill, self).__init__("PairingSkill")
+        self.reload_skill = False
         self.api = DeviceApi()
         self.data = None
         self.time_code_expires = None
@@ -147,6 +148,7 @@ class PairingSkill(MycroftSkill):
     def handle_mycroft_ready(self, message):
         """Catch info that skills are loaded and ready."""
         self.mycroft_ready = True
+        self.reload_skill = True
         self.gui.remove_page("InstallingSkills.qml")
         #don't do a full release because of bug with using self.gui.clear() in self.gui.release()
         #self.gui.release()
