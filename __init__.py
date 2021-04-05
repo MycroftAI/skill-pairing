@@ -13,18 +13,12 @@
 # limitations under the License.
 #
 import time
-import json
+from time import sleep
 from threading import Timer, Lock
 from uuid import uuid4
 from requests import HTTPError
-from os.path import join, dirname
-from ovos_utils.configuration import update_mycroft_config
-from ovos_utils.skills import blacklist_skill, make_priority_skill
-from ovos_utils.waiting_for_mycroft.base_skill import killable_intent, \
-    MycroftSkill, killable_event
-from ovos_local_backend.configuration import CONFIGURATION
+
 from adapt.intent import IntentBuilder
-from time import sleep
 from mycroft.api import DeviceApi, is_paired, check_remote_pairing
 from mycroft.identity import IdentityManager
 from mycroft.messagebus.message import Message
@@ -32,8 +26,14 @@ from mycroft.skills.core import intent_handler
 from mycroft.util import create_daemon, connected
 import mycroft.audio
 
+from ovos_utils.configuration import update_mycroft_config
+from ovos_utils.skills import blacklist_skill, make_priority_skill
+from ovos_workshop.skills.decorators import killable_intent, killable_event
+from ovos_workshop.skills import OVOSSkill
+from ovos_local_backend.configuration import CONFIGURATION
 
-class PairingSkill(MycroftSkill):
+
+class PairingSkill(OVOSSkill):
     poll_frequency = 5  # secs between checking server for activation
 
     def __init__(self):

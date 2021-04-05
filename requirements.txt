@@ -1,3 +1,4 @@
 ovos-local-backend
 jarbas-stt-plugin-chromium
-ovos_utils>=0.0.5
+ovos_utils>=0.0.9a1
+ovos_workshop>=0.0.1a3
