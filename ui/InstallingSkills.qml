@@ -12,9 +12,11 @@ Mycroft.Delegate {
     rightPadding: 0
     topPadding: 0
     bottomPadding: 0
+    skillBackgroundColorOverlay: Qt.rgba(0, 0, 0, 1)
     
     Rectangle {
         anchors.fill: parent
+        anchors.margins: Mycroft.Units.gridUnit * 2
         color: "#000000"
         
         ColumnLayout {
@@ -25,7 +27,7 @@ Mycroft.Delegate {
             Label {
                 id: statusLabel
                 Layout.alignment: Qt.AlignHCenter
-                font.pixelSize: parent.height * 0.075
+                font.pixelSize: root.width * 0.035
                 wrapMode: Text.WordWrap
                 renderType: Text.NativeRendering
                 font.family: "Noto Sans Display"
@@ -37,7 +39,7 @@ Mycroft.Delegate {
             Label {
                 id: statusLabel2
                 Layout.alignment: Qt.AlignHCenter
-                font.pixelSize: parent.height * 0.075
+                font.pixelSize: root.width * 0.035
                 wrapMode: Text.WordWrap
                 renderType: Text.NativeRendering
                 font.family: "Noto Sans Display"

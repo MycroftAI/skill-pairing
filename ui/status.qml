@@ -24,6 +24,7 @@ Mycroft.Delegate {
     
     Rectangle {
         anchors.fill: parent
+        anchors.margins: Mycroft.Units.gridUnit * 2
         color: "#000000"
         
         ColumnLayout {

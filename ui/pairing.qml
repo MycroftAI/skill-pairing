@@ -31,65 +31,50 @@ Mycroft.Delegate {
     rightPadding: 0
     bottomPadding: 0
     topPadding: 0
-    
+    skillBackgroundColorOverlay: Qt.rgba(0, 0, 0, 1)
+    property bool horizontalMode: root.width > root.height ? 1 :0
+
     Rectangle {
         color: "#000000"
         anchors.fill: parent
-        
-        ColumnLayout {
+        anchors.margins: Mycroft.Units.gridUnit * 2
+
+        GridLayout {
             id: colLay
             anchors.fill: parent
-            anchors.margins: Kirigami.Units.largeSpacing
-            
-            RowLayout {
-                Layout.fillWidth: true
-                Layout.minimumHeight: colLay.height * 0.075
-                Layout.alignment: Qt.AlignHCenter
-                                    
+            columns: horizontalMode ? 2 : 1
+            columnSpacing: Kirigami.Units.largeSpacing
+            Layout.alignment: horizontalMode ? Qt.AlignVCenter : Qt.AlignTop
+
+            ColumnLayout {
+                Layout.preferredWidth: horizontalMode ? parent.width / 2 : parent.width
+                Layout.preferredHeight: horizontalMode ? parent.height : parent.height / 2
+                Layout.alignment: horizontalMode ? Qt.AlignVCenter : Qt.AlignTop
+
                 Kirigami.Heading {
-                    id: sentence
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                    id: sentence3
+                    Layout.fillWidth: true
+                    Layout.alignment: horizontalMode ? Qt.AlignVCenter | Qt.AlignLeft : Qt.AlignTop | Qt.AlignLeft
                     wrapMode: Text.WordWrap
                     elide: Text.ElideRight
-                    font.family: "Noto Sans"
-                    font.bold: true
                     font.weight: Font.Bold
-                    font.pixelSize: colLay.height * 0.05
+                    font.pixelSize: horizontalMode ? root.width * 0.04 : root.height * 0.05
                     color: "white"
-                    text: "Visit"
+                    text: "Pair this device at <font color=\'#FF0000\'>" + root.backendurl + "</font>"
                 }
-                
+
                 Kirigami.Heading {
-                    id: backendurl
-                    horizontalAlignment: Text.AlignLeft
-                    verticalAlignment: Text.AlignVCenter
+                    Layout.fillWidth: true
+                    Layout.alignment: horizontalMode ? Qt.AlignVCenter | Qt.AlignLeft : Qt.AlignTop | Qt.AlignLeft
                     wrapMode: Text.WordWrap
                     elide: Text.ElideRight
-                    font.family: "Noto Sans"
-                    font.bold: true
                     font.weight: Font.Bold
-                    font.pixelSize: colLay.height * 0.05
-                    color: root.txtcolor
-                    text: root.backendurl
+                    font.pixelSize: horizontalMode ? root.width * 0.04 : root.height * 0.05
+                    color: "white"
+                    text: "Enter the code <font color=\'#FF0000\'>" + root.code + "</font>"
                 }
             }
-        
-            Kirigami.Heading {
-                id: sentence3
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignLeft
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
-                elide: Text.ElideRight
-                font.family: "Noto Sans"
-                font.bold: true
-                font.weight: Font.Bold
-                font.pixelSize: parent.height * 0.05
-                color: "white"
-                text: "to pair this device"
-            }
-                
+
             Image {
                 id: img
                 source: Qt.resolvedUrl("phone.png")
@@ -99,37 +84,6 @@ Mycroft.Delegate {
                 Layout.leftMargin: Kirigami.Units.largeSpacing
                 Layout.rightMargin: Kirigami.Units.largeSpacing
                 Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
-            }
-            
-            
-            Kirigami.Heading {
-                id: entercode
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignLeft
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
-                elide: Text.ElideRight
-                font.family: "Noto Sans"
-                font.bold: true
-                font.weight: Font.Bold
-                font.pixelSize: parent.height * 0.05
-                color: "white"
-                text: "Enter the code"
-            }
-            
-            Kirigami.Heading {
-                id: pairingcode
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignLeft
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
-                elide: Text.ElideRight
-                font.family: "Noto Sans"
-                font.bold: true
-                font.weight: Font.Bold
-                font.pixelSize: parent.height * 0.075
-                color: root.txtcolor
-                text: root.code
             }
         }
     }

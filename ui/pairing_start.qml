@@ -29,10 +29,12 @@ Mycroft.Delegate {
     rightPadding: 0
     bottomPadding: 0
     topPadding: 0
+    skillBackgroundColorOverlay: Qt.rgba(0, 0, 0, 1)
     
     Rectangle {
         color: "#000000"
         anchors.fill: parent
+        anchors.margins: Mycroft.Units.gridUnit * 2
 
         ColumnLayout {
             anchors.fill: parent
@@ -49,7 +51,7 @@ Mycroft.Delegate {
                 font.family: "Noto Sans"
                 font.bold: true
                 font.weight: Font.Bold
-                font.pixelSize: parent.height * 0.05
+                font.pixelSize: root.width * 0.035
                 text: "Fetching Pairing Code" 
             }
             

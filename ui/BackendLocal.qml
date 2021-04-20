@@ -29,14 +29,16 @@ Mycroft.Delegate {
     rightPadding: 0
     topPadding: 0
     bottomPadding: 0
-    
+    skillBackgroundColorOverlay: Qt.rgba(0, 0, 0, 1)
+    property bool horizontalMode: backendView.width > backendView.height ? 1 :0
+
     ListModel {
         id: backendFeatureList
         ListElement {
             text: "No Pairing Required"
         }
         ListElement {
-            text: "Configurable STT Options\n[Google STT (Online) | Kaldi STT (On Device)]"
+            text: "Configurable STT Options: Google | Kaldi STT"
         }
         ListElement {
             text: "Set Custom Wolfram Alpha Key"
@@ -49,7 +51,8 @@ Mycroft.Delegate {
     Rectangle {
         color: "#000000"
         anchors.fill: parent
-    
+        anchors.margins: Mycroft.Units.gridUnit * 2
+
         Item {
             id: topArea
             anchors.left: parent.left
@@ -58,13 +61,14 @@ Mycroft.Delegate {
             anchors.leftMargin: Kirigami.Units.largeSpacing
             anchors.rightMargin: Kirigami.Units.largeSpacing
             height: Kirigami.Units.gridUnit * 2
-            
+
             Kirigami.Heading {
                 id: brightnessSettingPageTextHeading
                 level: 1
                 wrapMode: Text.WordWrap
                 anchors.centerIn: parent
                 font.bold: true
+                font.pixelSize: horizontalMode ? backendView.width * 0.035 : backendView.height * 0.040
                 text: "Local Backend"
                 color: "#ff0000"
             }
@@ -74,46 +78,71 @@ Mycroft.Delegate {
             anchors.top: topArea.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.bottom: areaSep.top
-            anchors.margins: Kirigami.Units.largeSpacing
+            anchors.bottom: bottomArea.top
+            anchors.margins: Kirigami.Units.smallSpacing
             
             ColumnLayout {
                 anchors.fill: parent
                 spacing: Kirigami.Units.smallSpacing
-                
+
                 Label {
                     id: warnText
                     Layout.fillWidth: true
+                    horizontalAlignment: Text.AlignHCenter
+                    color: "white"
                     wrapMode: Text.WordWrap
-                    font.pixelSize: width * 0.040
-                    text: "Local backend is meant for personal usage and allows you to run fully offline."
+                    font.pixelSize: horizontalMode ? backendView.width * 0.035 : backendView.height * 0.040
+                    text: "For personal usage and allows you to run offline"
                 }
-                
+
                 Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: Kirigami.Units.largeSpacing
                 }
-                
+
                 ListView {
+                    id: qViewL
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     model: backendFeatureList
+                    clip: true
                     currentIndex: -1
-                    delegate: Kirigami.BasicListItem {
-                        label: model.text
-                        icon: Qt.resolvedUrl("icons/info-circle.svg")
-                    } 
+                    spacing: 5
+                    property int cellWidth: qViewL.width
+                    property int cellHeight: qViewL.height / 4.6
+                    delegate: Rectangle {
+                        width: qViewL.cellWidth
+                        height: qViewL.cellHeight
+                        radius: 10
+                        color: Qt.rgba(0.1, 0.1, 0.1, 0.9)
+
+                        Rectangle {
+                            id: symb
+                            anchors.left: parent.left
+                            anchors.leftMargin: Kirigami.Units.smallSpacing
+                            anchors.verticalCenter: parent.verticalCenter
+                            height: parent.height - Kirigami.Units.largeSpacing
+                            width: Kirigami.Units.iconSizes.medium
+                            color: "#e31525"
+                            radius: width
+                        }
+
+                        Label {
+                            id: cItm
+                            anchors.left: symb.right
+                            anchors.leftMargin: Kirigami.Units.largeSpacing
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.bottom: parent.bottom
+                            wrapMode: Text.WordWrap
+                            anchors.margins: Kirigami.Units.smallSpacing
+                            verticalAlignment: Text.AlignVCenter
+                            color: "white"
+                            text: model.text
+                        }
+                    }
                 }
             }
-        }
-
-        Kirigami.Separator {
-            id: areaSep
-            anchors.bottom: bottomArea.top
-            anchors.bottomMargin: Kirigami.Units.largeSpacing
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 1
         }
 
         RowLayout {
@@ -121,48 +150,56 @@ Mycroft.Delegate {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            anchors.margins: Kirigami.Units.largeSpacing
-            height: Kirigami.Units.gridUnit * 2.5
-            
+            anchors.topMargin: Kirigami.Units.largeSpacing
+            anchors.leftMargin: Kirigami.Units.largeSpacing
+            anchors.rightMargin: Kirigami.Units.largeSpacing
+            height: Kirigami.Units.gridUnit * 2
+
             Button {
+                id: btnba1
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                
+
                 background: Rectangle {
-                    color: bottomArea.down ? "#C89900" : "#fac000"
+                    color: btnba1.down ? "#323232" : "#595959"
+                    radius: 10
                 }
 
                 contentItem: Kirigami.Heading {
                     level: 3
                     wrapMode: Text.WordWrap
                     font.bold: true
+                    color: "white"
                     text: "Back"
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
                 }
-                
+
                 onClicked: {
                     triggerGuiEvent("mycroft.return.select.backend", {"page": "local"})
                 }
             }
-            
+
             Button {
+                id: btnba2
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                
+
                 background: Rectangle {
-                    color: bottomArea.down ? "#023B43" : "#09c5e0"
+                    color: btnba2.down ? "#53080e" : "#e31525"
+                    radius: 10
                 }
 
                 contentItem: Kirigami.Heading {
                     level: 3
                     wrapMode: Text.WordWrap
                     font.bold: true
-                    text: "Confirm Backend >"
+                    color: "white"
+                    text: "Confirm"
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
                 }
-                
+
                 onClicked: {
                     triggerGuiEvent("mycroft.device.confirm.backend", {"backend": "local"})
                 }

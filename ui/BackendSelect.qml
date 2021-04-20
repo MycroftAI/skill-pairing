@@ -29,64 +29,61 @@ Mycroft.Delegate {
     rightPadding: 0
     topPadding: 0
     bottomPadding: 0
+    skillBackgroundColorOverlay: Qt.rgba(0, 0, 0, 1)
+    property bool horizontalMode: backendView.width > backendView.height ? 1 :0
 
     Rectangle {
-        color: "#000000"
+        color: Qt.rgba(0, 0, 0, 1)
         anchors.fill: parent
-    
-        Item {
-            id: topArea
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.leftMargin: Kirigami.Units.largeSpacing
-            anchors.rightMargin: Kirigami.Units.largeSpacing
-            height: Kirigami.Units.gridUnit * 2
-            
-            Kirigami.Heading {
-                id: brightnessSettingPageTextHeading
-                level: 1
-                wrapMode: Text.WordWrap
-                anchors.centerIn: parent
-                font.bold: true
-                text: "Select Backend"
-                color: "#ff0000"
-            }
-        }
+        anchors.margins: Mycroft.Units.gridUnit * 2
 
-        Item {
-            anchors.top: topArea.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.margins: Kirigami.Units.largeSpacing
-            
+        GridLayout {
+            anchors.fill: parent
+            z: 1
+            columns: horizontalMode ? 2 : 1
+            columnSpacing: Kirigami.Units.largeSpacing
+            Layout.alignment: horizontalMode ? Qt.AlignVCenter : Qt.AlignTop
+
             ColumnLayout {
-                anchors.fill: parent
-                spacing: Kirigami.Units.smallSpacing
-                
+                Layout.maximumWidth: horizontalMode ? parent.width / 2 : parent.width
+                Layout.preferredHeight: horizontalMode ? parent.height : parent.height / 2
+                Layout.alignment: horizontalMode ? Qt.AlignVCenter : Qt.AlignTop
+
+                Label {
+                    id: selBText
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    font.bold: true
+                    font.pixelSize: backendView.width * 0.05
+                    color: "#ff0000"
+                    text: "Select Your Backend"
+                }
+
                 Label {
                     id: warnText
                     Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignTop
                     wrapMode: Text.WordWrap
-                    font.pixelSize: width * 0.05
-                    text: "A backend provides services used by Mycroft Core to manage devices, skills and settings. Select the backend type you would like to use with your OVOS Install."
+                    font.pixelSize: backendView.width * 0.04
+                    color: "white"
+                    text: "A backend provides services used by Mycroft Core"
                 }
-                
-                Item {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: Kirigami.Units.largeSpacing
-                }
-                                
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
                 Button {
                     id: bt1
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    
+
                     background: Rectangle {
-                        color: bt1.down ? "#14415E" : "#34a4eb"
+                        color: bt1.down ? "#14415E" : "#22a7f0"
+                        radius: 10
                     }
-                    
+
                     contentItem: Kirigami.Heading {
                         width: parent.width
                         height: parent.height
@@ -95,24 +92,25 @@ Mycroft.Delegate {
                         wrapMode: Text.WordWrap
                         elide: Text.ElideRight
                         level: 3
-                        text: "Mycroft Backend (Default)"
+                        text: "Mycroft Backend"
                     }
-                        
+
                     onClicked: {
                         triggerGuiEvent("mycroft.device.set.backend",
                         {"backend": "selene"})
                     }
                 }
-                
+
                 Button {
                     id: bt2
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    
+
                     background: Rectangle {
-                        color: bt2.down ? "#BC4729" : "#eb5934"
+                        color: bt2.down ? "#BC4729" : "#eb4934"
+                        radius: 10
                     }
-                    
+
                     contentItem: Kirigami.Heading {
                         width: parent.width
                         height: parent.height
@@ -123,7 +121,7 @@ Mycroft.Delegate {
                         level: 3
                         text: "Local Backend"
                     }
-                    
+
                     onClicked: {
                         triggerGuiEvent("mycroft.device.set.backend",
                         {"backend": "local"})
