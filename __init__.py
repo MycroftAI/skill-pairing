@@ -155,6 +155,9 @@ class PairingSkill(OVOSSkill):
         #call mycroft.gui.screen.close directly over messagebus
         self.bus.emit(Message("mycroft.gui.screen.close",
                               {"skill_id": self.skill_id}))
+        #Tell OVOS-GUI to finally collect resting screens
+        self.bus.emit(Message("ovos.pairing.set.backend", {"backend": "mycroft"}))
+        self.bus.emit(Message("ovos.pairing.process.completed"))
 
     # voice events
     def converse(self, utterances, lang=None):
@@ -400,8 +403,9 @@ class PairingSkill(OVOSSkill):
         self.gui.remove_page("BackendLocalConfig.qml")
         self.gui.show_page("BackendLocalRestart.qml", override_idle=True,
                            override_animations=True)
-        # if not self.using_mock:
-        # self.enable_mock()
+        self.bus.emit(Message("ovos.pairing.set.backend", {"backend": "local"}))
+        if not self.using_mock:
+            self.enable_mock()
         # TODO restart
         self.in_pairing = False
 
