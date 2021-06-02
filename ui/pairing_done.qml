@@ -36,7 +36,6 @@ Mycroft.Delegate {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             elide: Text.ElideRight
-            font.family: "Noto Sans Display"
             font.bold: true
             font.weight: Font.Bold
             font.pixelSize: 70
@@ -51,7 +50,6 @@ Mycroft.Delegate {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             elide: Text.ElideRight
-            font.family: "Noto Sans Display"
             font.bold: true
             font.weight: Font.Bold
             font.pixelSize: 55
@@ -65,7 +63,6 @@ Mycroft.Delegate {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             elide: Text.ElideRight
-            font.family: "Noto Sans Display"
             font.bold: true
             font.weight: Font.Bold
             font.pixelSize: 55
@@ -79,7 +76,6 @@ Mycroft.Delegate {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             elide: Text.ElideRight
-            font.family: "Noto Sans Display"
             font.bold: true
             font.weight: Font.Bold
             font.pixelSize: 55

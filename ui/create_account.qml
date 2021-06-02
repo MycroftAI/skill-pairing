@@ -55,7 +55,6 @@ Mycroft.Delegate {
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
                     elide: Text.ElideRight
-                    font.family: "Noto Sans Display"
                     font.weight: Font.Bold
                     fontSizeMode: Text.HorizontalFit
                     minimumPixelSize: 70
@@ -77,7 +76,6 @@ Mycroft.Delegate {
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignTop
                     width: parent.width
-                    font.family: "Noto Sans Display"
                     font.weight: Font.Bold
                     fontSizeMode: Text.HorizontalFit
                     font.pixelSize: root.height * 0.10

@@ -49,7 +49,6 @@ Mycroft.ProportionalDelegate {
             font.pixelSize: 65
             wrapMode: Text.WordWrap
             renderType: Text.NativeRendering
-            font.family: "Noto Sans Display"
             font.styleName: "Black"
             font.capitalization: Font.AllUppercase
             text: "Paired"
