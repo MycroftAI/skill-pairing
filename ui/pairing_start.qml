@@ -22,46 +22,67 @@ import org.kde.kirigami 2.4 as Kirigami
 
 import Mycroft 1.0 as Mycroft
 
+/* Define a screen instructing user to a URL for pairing */
 Mycroft.Delegate {
     id: root
-    property var code: sessionData.code
+    property var spacingUnit: 10
+    property bool horizontalMode: root.width > root.height ? 1 : 0
+    leftPadding: 0
+    rightPadding: 0
+    topPadding: 0
+    bottomPadding: 0
 
-    ColumnLayout {
+    Rectangle {
         anchors.fill: parent
-        
-        Kirigami.Heading {
-            id: sentence
-            Layout.fillWidth: true
-            Layout.alignment: Qt.AlignLeft
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-            elide: Text.ElideRight
-            font.family: "Noto Sans"
-            font.bold: true
-            font.weight: Font.Bold
-            font.pixelSize: 40
-            visible: !content.visible
-            text: "I'm connected\nand need to be\nactivated, go to"
-        }
-        Kirigami.Heading {
-            id: example1
-            Layout.fillWidth: true
-            Layout.alignment: Qt.AlignLeft
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-            elide: Text.ElideRight
-            font.family: "Noto Sans"
-            font.bold: true
-            font.weight: Font.Bold
-            font.pixelSize: 40
-            visible: !content.visible
-            color: "#22a7f0"
-            text: "home.mycroft.ai"
-        }
-        Image {
+        color: "#000000"
+
+        GridLayout {
+            anchors.fill: parent
+            columns: horizontalMode ? 2 : 1
+
+            Image {
                 id: img
                 source: Qt.resolvedUrl("phone.png")
-                Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
+                Layout.preferredWidth: horizontalMode ? parent.width / 2 : parent.width
+                Layout.preferredHeight: horizontalMode ? parent.height * 0.9 : parent.height / 2
+                Layout.alignment: Qt.AlignBottom
+                Layout.bottomMargin: -Kirigami.Units.largeSpacing
+                fillMode: Image.PreserveAspectFit
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                Kirigami.Heading {
+                    id: sentence
+                    Layout.fillWidth: true
+                    Layout.alignment: horizontalMode ? Qt.AlignLeft : Qt.AlignHCenter | Qt.AlignVCenter
+                    Layout.leftMargin: horizontalMode ? spacingUnit : 0
+                    horizontalAlignment: horizontalMode ? Text.AlignLeft : Text.AlignHCenter
+                    verticalAlignment: horizontalMode ? Text.AlignVCenter : Text.AlignTop
+                    wrapMode: Text.WordWrap
+                    elide: Text.ElideRight
+                    font.weight: Font.Bold
+                    font.pixelSize: horizontalMode ? root.width * 0.050 : root.height * 0.065
+                    text: "I need to be activated, pair at"
+                }
+                Kirigami.Heading {
+                    id: url
+                    Layout.fillWidth: true
+                    Layout.leftMargin: horizontalMode ? spacingUnit : 0
+                    Layout.alignment: horizontalMode ? Qt.AlignLeft : Qt.AlignHCenter | Qt.AlignTop
+                    horizontalAlignment: horizontalMode ? Text.AlignLeft : Text.AlignHCenter
+                    verticalAlignment: horizontalMode ? Text.AlignVCenter : Text.AlignTop
+                    wrapMode: Text.WordWrap
+                    elide: Text.ElideRight
+                    font.weight: Font.Bold
+                    font.pixelSize: horizontalMode ? root.width * 0.035 : root.height * 0.05
+                    color: "#22a7f0"
+                    text: "account.mycroft.ai/pair"
+                }
+            }
         }
     }
-}  
+}
+
