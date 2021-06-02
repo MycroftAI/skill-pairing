@@ -70,7 +70,7 @@ class PairingSkill(MycroftSkill):
         self.pairing_in_progress = False
 
     def initialize(self):
-        """Stuff to do after constructor but before intent."""
+        """Register event handlers, setup language and platform dependent info."""
         self.add_event("mycroft.not.paired", self.not_paired)
         self.nato_alphabet = self.translate_namedvalues('codes')
         # TODO replace self.platform logic with call to enclosure capabilities
