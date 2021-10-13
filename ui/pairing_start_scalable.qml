@@ -42,7 +42,7 @@ Mycroft.Delegate {
 
             Image {
                 id: img
-                source: Qt.resolvedUrl("phone.png")
+                source: Qt.resolvedUrl("images/phone.png")
                 Layout.preferredWidth: horizontalMode ? parent.width / 2 : parent.width
                 Layout.preferredHeight: horizontalMode ? parent.height * 0.9 : parent.height / 2
                 Layout.alignment: Qt.AlignBottom

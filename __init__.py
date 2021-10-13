@@ -18,16 +18,16 @@ from requests import HTTPError
 from threading import Timer, Lock
 from uuid import uuid4
 
-from adapt.intent import IntentBuilder
-
 import mycroft.audio
 from mycroft.api import DeviceApi, is_paired, check_remote_pairing
 from mycroft.identity import IdentityManager
 from mycroft.messagebus.message import Message
-from mycroft.skills.core import MycroftSkill, intent_handler
+from mycroft.skills import intent_handler, MycroftSkill
+from mycroft.skills.intent_service import AdaptIntent
 
 
-ACTION_BUTTON_PLATFORMS = ('mycroft_mark_1', 'mycroft_mark_2')
+MARK_II = 'mycroft_mark_2'
+ACTION_BUTTON_PLATFORMS = ('mycroft_mark_1', MARK_II)
 MAX_PAIRING_CODE_RETRIES = 30
 ACTIVATION_POLL_FREQUENCY = 10  # secs between checking server for activation
 
@@ -41,7 +41,7 @@ def _stop_speaking():
 class PairingSkill(MycroftSkill):
     """Device pairing logic."""
     def __init__(self):
-        super(PairingSkill, self).__init__("PairingSkill")
+        super().__init__("PairingSkill")
         self.api = DeviceApi()
         self.pairing_token = None
         self.pairing_code = None
@@ -107,9 +107,9 @@ class PairingSkill(MycroftSkill):
             self.speak_dialog("pairing.not.paired")
         self.handle_pairing()
 
-    @intent_handler(IntentBuilder("PairingIntent")
+    @intent_handler(AdaptIntent("PairingIntent")
                     .require("PairingKeyword").require("DeviceKeyword"))
-    def handle_pairing(self, message=None):
+    def handle_pairing(self, _):
         """Attempt to pair the device to the Selene database."""
         already_paired = check_remote_pairing(ignore_errors=True)
         if already_paired:
@@ -149,7 +149,7 @@ class PairingSkill(MycroftSkill):
             self.log.info("Communicating account URL to user")
             self.account_creation_requested = True
             if self.gui.connected:
-                self.gui.show_page("create_account.qml", override_idle=True)
+                self._show_page("create_account")
             else:
                 self.enclosure.mouth_text("account.mycroft.ai      ")
             self.speak_dialog("create.account")
@@ -204,18 +204,17 @@ class PairingSkill(MycroftSkill):
         """Tell the user the URL for pairing and display it, if possible"""
         self.log.info("Communicating pairing URL to user")
         if self.gui.connected:
-            self.gui.show_page("pairing_start.qml", override_idle=True)
+            self._show_page("pairing_start")
         else:
             self.enclosure.mouth_text("mycroft.ai/pair      ")
         self.speak_dialog("pairing.intro")
-        mycroft.audio.wait_while_speaking()
         time.sleep(30)
 
     def _display_pairing_code(self):
         """Show the pairing code on the display, if one is available"""
         if self.gui.connected:
-            self.gui['code'] = self.pairing_code
-            self.gui.show_page("pairing_code.qml", override_idle=True)
+            self.gui['pairingCode'] = self.pairing_code
+            self._show_page("pairing_code")
         else:
             self.enclosure.mouth_text(self.pairing_code)
 
@@ -281,24 +280,34 @@ class PairingSkill(MycroftSkill):
         else:
             self._attempt_activation()
 
-    def _handle_activation(self, login):
-        """Steps to take after successful device activation."""
+    def _handle_activation(self, login: dict):
+        """Steps to take after successful device activation.
+
+        Args:
+            login: credentials for the device to log into the backend.
+        """
         self._save_identity(login)
         _stop_speaking()
         self._display_pairing_success()
         self.bus.emit(Message("mycroft.paired", login))
         self.pairing_performed = True
         self._speak_pairing_success()
+        self.gui.release()
         self.bus.emit(Message("configuration.updated"))
+        # Without this the idle screen does not show up after pairing.
+        self.bus.emit(Message("mycroft.device.show.idle"))
         self.reload_skill = True
 
-    def _save_identity(self, login):
+    def _save_identity(self, login: dict):
         """Save this device's identifying information to disk.
 
         The user has successfully paired the device on account.mycroft.ai.
         The UUID and access token of the device can now be saved to the
         local identity file.  If saving the identity file fails twice,
         something went very wrong and the pairing process will restart.
+
+        Args:
+            login: credentials for the device to log into the backend.
         """
         save_attempts = 1
         while save_attempts < 2:
@@ -324,9 +333,9 @@ class PairingSkill(MycroftSkill):
     def _display_pairing_success(self):
         """Display a pairing complete screen on GUI or clear Arduino"""
         if self.gui.connected:
-            self.gui.show_page("pairing_success.qml", override_idle=True)
-            time.sleep(3)
-            self.gui.show_page("pairing_done.qml", override_idle=False)
+            self._show_page("pairing_success")
+            time.sleep(5)
+            self._show_page("pairing_done", override_idle=False)
         else:
             self.enclosure.activate_mouth_events()  # clears the display
 
@@ -338,13 +347,11 @@ class PairingSkill(MycroftSkill):
         """
         with self.paired_dialog_lock:
             if self.mycroft_ready:
-                self.speak_dialog(self.paired_dialog)
-                mycroft.audio.wait_while_speaking()
+                self.speak_dialog(self.paired_dialog, wait=True)
             else:
-                self.speak_dialog("wait.for.startup")
-                mycroft.audio.wait_while_speaking()
+                self.speak_dialog("wait.for.startup", wait=True)
 
-    def _end_pairing(self, error_dialog):
+    def _end_pairing(self, error_dialog: str):
         """Resets the pairing and don't restart it.
 
         Arguments:
@@ -354,7 +361,7 @@ class PairingSkill(MycroftSkill):
         self.bus.emit(Message("mycroft.mic.unmute", None))
         self._reset_pairing_attributes()
 
-    def _restart_pairing(self, quiet=False):
+    def _restart_pairing(self, quiet: bool = False):
         """Resets the pairing and don't restart it.
 
         Arguments:
@@ -376,6 +383,23 @@ class PairingSkill(MycroftSkill):
         self.device_activation_checker = None
         self.pairing_code = None
         self.pairing_token = None
+
+    def _show_page(self, page_name_prefix: str, override_idle: bool = True):
+        """Display the correct pairing screen depending on the platform.
+
+        Args:
+            page_name_prefix: the first part of the QML file name is the same
+                irregardless of platform.
+            override_idle: whether or not the screen to show should override the
+                resting screen.
+        """
+        if self.platform == MARK_II:
+            page_name_suffix = "_mark_ii"
+        else:
+            page_name_suffix = "_scalable"
+        page_name = page_name_prefix + page_name_suffix + ".qml"
+        self.gui.clear()
+        self.gui.show_page(page_name, override_idle)
 
     def shutdown(self):
         """Skill process termination steps."""
