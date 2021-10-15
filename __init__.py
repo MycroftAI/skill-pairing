@@ -398,7 +398,8 @@ class PairingSkill(MycroftSkill):
         else:
             page_name_suffix = "_scalable"
         page_name = page_name_prefix + page_name_suffix + ".qml"
-        self.gui.clear()
+        if self.gui.page is not None:
+            self.gui.remove_page(self.gui.page)
         self.gui.show_page(page_name, override_idle)
 
     def shutdown(self):
