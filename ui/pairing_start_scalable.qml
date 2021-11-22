@@ -42,7 +42,7 @@ Mycroft.Delegate {
 
             Image {
                 id: img
-                source: Qt.resolvedUrl("images/phone.png")
+                source: Qt.resolvedUrl("images/phone.svg")
                 Layout.preferredWidth: horizontalMode ? parent.width / 2 : parent.width
                 Layout.preferredHeight: horizontalMode ? parent.height * 0.9 : parent.height / 2
                 Layout.alignment: Qt.AlignBottom
@@ -55,7 +55,7 @@ Mycroft.Delegate {
                 Layout.fillHeight: true
 
                 Kirigami.Heading {
-                    id: sentence
+                    id: firstLine
                     Layout.fillWidth: true
                     Layout.alignment: horizontalMode ? Qt.AlignLeft : Qt.AlignHCenter | Qt.AlignVCenter
                     Layout.leftMargin: horizontalMode ? spacingUnit : 0
@@ -65,7 +65,20 @@ Mycroft.Delegate {
                     elide: Text.ElideRight
                     font.weight: Font.Bold
                     font.pixelSize: horizontalMode ? root.width * 0.050 : root.height * 0.065
-                    text: "I need to be activated, pair at"
+                    text: "I need to be activated,"
+                }
+                Kirigami.Heading {
+                    id: secondLine
+                    Layout.fillWidth: true
+                    Layout.alignment: horizontalMode ? Qt.AlignLeft : Qt.AlignHCenter | Qt.AlignVCenter
+                    Layout.leftMargin: horizontalMode ? spacingUnit : 0
+                    horizontalAlignment: horizontalMode ? Text.AlignLeft : Text.AlignHCenter
+                    verticalAlignment: horizontalMode ? Text.AlignVCenter : Text.AlignTop
+                    wrapMode: Text.WordWrap
+                    elide: Text.ElideRight
+                    font.weight: Font.Bold
+                    font.pixelSize: horizontalMode ? root.width * 0.050 : root.height * 0.065
+                    text: "pair me at"
                 }
                 Kirigami.Heading {
                     id: url
@@ -79,7 +92,7 @@ Mycroft.Delegate {
                     font.weight: Font.Bold
                     font.pixelSize: horizontalMode ? root.width * 0.035 : root.height * 0.05
                     color: "#22a7f0"
-                    text: "account.mycroft.ai/pair"
+                    text: "mycroft.ai/pair"
                 }
             }
         }

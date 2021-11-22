@@ -29,7 +29,6 @@ Mycroft.Delegate {
     rightPadding: 0
     bottomPadding: 0
     topPadding: 0
-    property var pairingCode: sessionData.code
 
     Rectangle {
         color: "#22a7f0"
@@ -52,7 +51,7 @@ Mycroft.Delegate {
                 minimumPixelSize: 65
                 font.pixelSize: Math.max(root.height * 0.25, minimumPixelSize)
                 color: "white"
-                text: root.pairingCode
+                text: sessionData.pairingCode
             }
 
             Item {
@@ -65,15 +64,15 @@ Mycroft.Delegate {
             Item {
                 id: pairAtItem
                 anchors.top: screenCenter.bottom
-                anchors.left: parent.left
                 anchors.topMargin: 24
-                width: parent.width / 4
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width
                 height: pairAtText.paintedHeight
 
                 Text {
                     id: pairAtText
                     width: parent.width
-                    horizontalAlignment: Text.AlignRight
+                    horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     wrapMode: Text.WordWrap
                     elide: Text.ElideRight
@@ -85,24 +84,22 @@ Mycroft.Delegate {
             }
             Item {
                 id: urlItem
-                anchors.top: screenCenter.bottom
+                anchors.top: pairAtItem.bottom
                 anchors.topMargin: 24
-                anchors.left: pairAtItem.right
-                anchors.leftMargin: Kirigami.Units.smallSpacing * 3
                 width: parent.width
                 height: pairAtText.paintedHeight
 
                 Text {
                     id: urlText
                     width: parent.width
-                    horizontalAlignment: Text.AlignLeft
+                    horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     wrapMode: Text.WordWrap
                     elide: Text.ElideRight
                     font.weight: Font.Bold
                     font.pixelSize: root.height * 0.08
                     color: "#2C3E50"
-                    text: "account.mycroft.ai/pair"
+                    text: "mycroft.ai/pair"
                 }
             }
         }
