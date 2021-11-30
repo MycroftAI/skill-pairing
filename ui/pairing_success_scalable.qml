@@ -33,10 +33,10 @@ Mycroft.ProportionalDelegate {
             id: statusIcon
             visible: true
             enabled: true
-            anchors.horizontalCenter: grid.horizontalCenter
+            Layout.alignment: Qt.AlignHCenter
             Layout.preferredWidth: proportionalGridUnit * 50
             Layout.preferredHeight: proportionalGridUnit * 50
-            source: Qt.resolvedUrl("check_circle.svg")
+            source: Qt.resolvedUrl("images/check_circle.svg")
         }
 
         /* Add some spacing between icon and text */
