@@ -236,7 +236,9 @@ class PairingSkill(MycroftSkill):
         self.log.debug("Speaking pairing code")
         pairing_code_utterance = map(self.nato_alphabet.get, self.pairing_code)
         speak_data = dict(code='. '.join(pairing_code_utterance) + '.')
-        self.speak_dialog("pairing.code", speak_data)
+        # TODO - There is a bug in the Mark 1 where the pairing code display is
+        # immediately cleared if we do not wait for this dialog to be spoken.
+        self.speak_dialog("pairing.code", speak_data, wait=True)
 
     def _start_device_activation_checker(self):
         """Set a timer to check the activation status in ten seconds."""
