@@ -14,6 +14,7 @@
 #
 """Mycroft skill to pair a device to the Selene backend."""
 import time
+from http import HTTPStatus
 from requests import HTTPError
 from threading import Timer, Lock
 from uuid import uuid4
@@ -30,6 +31,7 @@ MARK_II = 'mycroft_mark_2'
 ACTION_BUTTON_PLATFORMS = ('mycroft_mark_1', MARK_II)
 MAX_PAIRING_CODE_RETRIES = 30
 ACTIVATION_POLL_FREQUENCY = 10  # secs between checking server for activation
+ONE_MINUTE = 60
 
 
 def _stop_speaking():
@@ -40,14 +42,17 @@ def _stop_speaking():
 
 class PairingSkill(MycroftSkill):
     """Device pairing logic."""
+
     def __init__(self):
         super().__init__("PairingSkill")
         self.api = DeviceApi()
+        self.server_available = False
         self.pairing_token = None
         self.pairing_code = None
         self.pairing_code_expiration = None
         self.state = str(uuid4())
-        self.platform = None
+        # TODO replace self.platform logic with call to enclosure capabilities
+        self.platform = self.config_core['enclosure'].get('platform', 'unknown')
         self.nato_alphabet = None
         self.mycroft_ready = False
         self.pairing_code_retry_cnt = 0
@@ -61,8 +66,6 @@ class PairingSkill(MycroftSkill):
 
         # These attributes are used when tracking the ready state to control
         # when the paired dialog is spoken.
-        self.paired_dialog_lock = Lock()
-        self.paired_dialog = None
         self.pairing_performed = False
 
         # These attributes are used when determining if pairing has started.
@@ -71,59 +74,85 @@ class PairingSkill(MycroftSkill):
 
     def initialize(self):
         """Register event handlers, setup language and platform dependent info."""
-        self.add_event("mycroft.not.paired", self.not_paired)
+        self.add_event("hardware.clock-synchronized", self.handle_clock_synchronized)
         self.nato_alphabet = self.translate_namedvalues('codes')
-        # TODO replace self.platform logic with call to enclosure capabilities
-        self.platform = self.config_core['enclosure'].get(
-            'platform', 'unknown'
-        )
-        self._select_paired_dialog()
 
-        # If the device isn't paired catch mycroft.ready to report
-        # that the device is ready for use.
-        # This assumes that the pairing skill is loaded as a priority skill
-        # before the rest of the skills are loaded.
-        if not is_paired():
-            self.add_event("mycroft.ready", self.handle_mycroft_ready)
-
-    def _select_paired_dialog(self):
-        """Select the correct dialog file to communicate pairing complete."""
-        if self.platform in ACTION_BUTTON_PLATFORMS:
-            self.paired_dialog = 'pairing.paired'
-        else:
-            self.paired_dialog = 'pairing.paired.no.button'
-
-    def handle_mycroft_ready(self, _):
-        """Catch info that skills are loaded and ready."""
-        with self.paired_dialog_lock:
-            if is_paired() and self.pairing_performed:
-                self.speak_dialog(self.paired_dialog)
-            else:
-                self.mycroft_ready = True
-
-    def not_paired(self, message):
-        """When not paired, tell the user so and start pairing."""
-        if not message.data.get('quiet', True):
-            self.speak_dialog("pairing.not.paired")
-        self.handle_pairing()
-
-    @intent_handler(AdaptIntent("PairingIntent")
-                    .require("PairingKeyword").require("DeviceKeyword"))
+    @intent_handler(
+        AdaptIntent("PairingIntent").require("PairingKeyword").require("DeviceKeyword")
+    )
     def handle_pairing(self, _):
-        """Attempt to pair the device to the Selene database."""
-        already_paired = check_remote_pairing(ignore_errors=True)
-        if already_paired:
+        """Handles request to connect to the server from the Adapt intent parser."""
+        self._authenticate_with_server()
+        if self.authenticated:
             self.speak_dialog("already.paired")
-            self.log.info(
-                "Pairing skill invoked but device is paired, exiting"
-            )
-        elif self.pairing_code is None:
-            start_pairing = self._check_pairing_in_progress()
-            if start_pairing:
-                self.reload_skill = False  # Prevent restart during pairing
-                self.enclosure.deactivate_mouth_events()
-                self._communicate_create_account_url()
-                self._execute_pairing_sequence()
+        else:
+            self._pair_with_server()
+
+
+    def handle_clock_synchronized(self, _):
+        """Handles connecting to server as part of the device boot sequence.
+
+        Check pairing status after the system clock is synchronized to NTP.
+        Attempting pairing before clock synchronization could result in SSL errors
+        if the date is too far off.  This is especially common on first boot,
+        when pairing usually takes place.
+        """
+        self._authenticate_with_server()
+        if not self.authenticated:
+            self._pair_with_server()
+
+    def _authenticate_with_server(self):
+        """Attempts to connect to the configured server.
+
+        The server endpoint being called requires authentication.  If the
+        authentication attempt returns a HTTP 401 (unauthorized), the device is
+        not paired with the server.  Any other HTTP error code is interpreted
+        as the server being unavailable for pairing.
+        """
+        self.bus.emit(Message("sever-connect.authentication.started"))
+        retries = 0
+        while True:
+            try:
+                self._call_device_endpoint()
+            except HTTPError as http_error:
+                if not retries:
+                    # Only need to log the exception and show the screen once
+                    self.log.exception(
+                        f"Attempt to authenticate with server failed with HTTP status "
+                        f"code {http_error.response.status_code}"
+                    )
+                elif not retries % 5:
+                    self.speak_dialog("server-unavailable")
+                time.sleep(ONE_MINUTE)
+            else:
+                break
+        if self.authenticated:
+            self.log.info("Authenticated with server - pairing skipped")
+        else:
+            self.log.info("Authentication with server failed - pairing")
+        self.bus.emit(Message("server-connect.authentication.ended"))
+
+    def _call_device_endpoint(self):
+        """Attempts a simple API call to determine authentication status."""
+        try:
+            self.api.get()
+        except HTTPError as http_error:
+            if http_error.response.status_code == HTTPStatus.UNAUTHORIZED:
+                self.authenticated = False
+            else:
+                raise
+        else:
+            self.authenticated = True
+
+        return self.authenticated
+
+    def _pair_with_server(self):
+        start_pairing = self._check_pairing_in_progress()
+        if start_pairing:
+            self.reload_skill = False  # Prevent restart during pairing
+            self.enclosure.deactivate_mouth_events()
+            self._communicate_create_account_url()
+            self._execute_pairing_sequence()
 
     def _check_pairing_in_progress(self):
         """Determine if skill was invoked while pairing is in progress."""
@@ -342,16 +371,12 @@ class PairingSkill(MycroftSkill):
             self.enclosure.activate_mouth_events()  # clears the display
 
     def _speak_pairing_success(self):
-        """Tell the user the device is paired.
-
-        If the device is not ready for use, also tell the user to wait until
-        the device is ready.
-        """
-        with self.paired_dialog_lock:
-            if self.mycroft_ready:
-                self.speak_dialog(self.paired_dialog, wait=True)
-            else:
-                self.speak_dialog("wait.for.startup", wait=True)
+        """Tell the user the device is paired."""
+        if self.platform in ACTION_BUTTON_PLATFORMS:
+            paired_dialog = 'pairing.paired'
+        else:
+            paired_dialog = 'pairing.paired.no.button'
+        self.speak_dialog(paired_dialog, wait=True)
 
     def _end_pairing(self, error_dialog: str):
         """Resets the pairing and don't restart it.
