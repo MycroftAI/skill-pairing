@@ -74,7 +74,7 @@ class PairingSkill(MycroftSkill):
 
     def initialize(self):
         """Register event handlers, setup language and platform dependent info."""
-        self.add_event("hardware.clock-synchronized", self.handle_clock_synchronized)
+        self.add_event("mycroft.internet-ready", self.handle_internet_ready)
         self.nato_alphabet = self.translate_namedvalues('codes')
 
     @intent_handler(
@@ -82,14 +82,18 @@ class PairingSkill(MycroftSkill):
     )
     def handle_pairing(self, _):
         """Handles request to connect to the server from the Adapt intent parser."""
+        self.log.info("Attempting to pair device with server...")
         self._authenticate_with_server()
         if self.authenticated:
+            self.log.info("Device is already paired with server")
             self.speak_dialog("already.paired")
         else:
+            self.log.info(
+                "Device is not paired with server, initiating pairing sequence"
+            )
             self._pair_with_server()
 
-
-    def handle_clock_synchronized(self, _):
+    def handle_internet_ready(self, _):
         """Handles connecting to server as part of the device boot sequence.
 
         Check pairing status after the system clock is synchronized to NTP.
@@ -97,8 +101,15 @@ class PairingSkill(MycroftSkill):
         if the date is too far off.  This is especially common on first boot,
         when pairing usually takes place.
         """
+        self.log.info("Attempting to authenticate with server...")
         self._authenticate_with_server()
-        if not self.authenticated:
+        if self.authenticated:
+            self.log.info("Server authentication succeeded")
+            self.bus.emit(Message("server-connect.authenticated"))
+        else:
+            self.log.info(
+                "Authentication with server failed - initiating pairing sequence"
+            )
             self._pair_with_server()
 
     def _authenticate_with_server(self):
@@ -109,7 +120,7 @@ class PairingSkill(MycroftSkill):
         not paired with the server.  Any other HTTP error code is interpreted
         as the server being unavailable for pairing.
         """
-        self.bus.emit(Message("sever-connect.authentication.started"))
+        self.bus.emit(Message("server-connect.authentication.started"))
         retries = 0
         while True:
             try:
@@ -123,13 +134,10 @@ class PairingSkill(MycroftSkill):
                     )
                 elif not retries % 5:
                     self.speak_dialog("server-unavailable")
+                    self._display_server_unavailable()
                 time.sleep(ONE_MINUTE)
             else:
                 break
-        if self.authenticated:
-            self.log.info("Authenticated with server - pairing skipped")
-        else:
-            self.log.info("Authentication with server failed - pairing")
         self.bus.emit(Message("server-connect.authentication.ended"))
 
     def _call_device_endpoint(self):
@@ -145,6 +153,11 @@ class PairingSkill(MycroftSkill):
             self.authenticated = True
 
         return self.authenticated
+
+    def _display_server_unavailable(self):
+        self._show_page("server_failure")
+        time.sleep(15)
+        self._show_page("server_connect")
 
     def _pair_with_server(self):
         start_pairing = self._check_pairing_in_progress()
