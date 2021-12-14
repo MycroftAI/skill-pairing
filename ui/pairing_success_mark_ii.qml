@@ -43,7 +43,7 @@ Mycroft.Delegate {
             anchors.topMargin: gridUnit * 2
             heightUnits: 20
             widthUnits: 20
-            imageSource: "images/check_circle.svg"
+            imageSource: "images/success.svg"
         }
 
         PairingLabel {
@@ -53,7 +53,7 @@ Mycroft.Delegate {
             fontSize: 59
             fontStyle: "Bold"
             heightUnits: 3
-            text: "Connected"
+            text: "Paired with server"
         }
     }
 }
