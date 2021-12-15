@@ -336,6 +336,7 @@ class PairingSkill(MycroftSkill):
         self.bus.emit(Message("mycroft.paired", login))
         self.pairing_performed = True
         self._speak_pairing_success()
+        self.bus.emit(Message("server-connect.authenticated"))
         self.gui.release()
         self.bus.emit(Message("configuration.updated"))
         # Without this the idle screen does not show up after pairing.
