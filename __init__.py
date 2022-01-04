@@ -397,12 +397,12 @@ class PairingSkill(MycroftSkill):
         """
         if self.platform == MARK_II:
             page_name_suffix = "_mark_ii"
+            page_name = page_name_prefix + page_name_suffix + ".qml"
+            self.gui.replace_page(page_name, override_idle)
         else:
             page_name_suffix = "_scalable"
-        page_name = page_name_prefix + page_name_suffix + ".qml"
-        if self.gui.page is not None:
-            self.gui.remove_page(self.gui.page)
-        self.gui.show_page(page_name, override_idle)
+            page_name = page_name_prefix + page_name_suffix + ".qml"
+            self.gui.show_page(page_name, override_idle)
 
     def shutdown(self):
         """Skill process termination steps."""
