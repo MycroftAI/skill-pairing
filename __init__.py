@@ -102,6 +102,7 @@ class PairingSkill(MycroftSkill):
         when pairing usually takes place.
         """
         self.log.info("Attempting to authenticate with server...")
+        self._show_page("server_connect")
         self._authenticate_with_server()
         if self.authenticated:
             self.log.info("Server authentication succeeded")
@@ -435,12 +436,10 @@ class PairingSkill(MycroftSkill):
                 resting screen.
         """
         if self.platform == MARK_II:
-            page_name_suffix = "_mark_ii"
-            page_name = page_name_prefix + page_name_suffix + ".qml"
+            page_name = page_name_prefix + "_mark_ii.qml"
             self.gui.replace_page(page_name, override_idle)
         else:
-            page_name_suffix = "_scalable"
-            page_name = page_name_prefix + page_name_suffix + ".qml"
+            page_name = page_name_prefix + "_scalable.qml"
             self.gui.show_page(page_name, override_idle)
 
     def shutdown(self):
