@@ -340,8 +340,6 @@ class PairingSkill(MycroftSkill):
         self.bus.emit(Message("server-connect.authenticated"))
         self.gui.release()
         self.bus.emit(Message("configuration.updated"))
-        # Without this the idle screen does not show up after pairing.
-        self.bus.emit(Message("mycroft.device.show.idle"))
         self.reload_skill = True
 
     def _save_identity(self, login: dict):
@@ -381,7 +379,7 @@ class PairingSkill(MycroftSkill):
         if self.gui.connected:
             self._show_page("pairing_success")
             time.sleep(5)
-            self._show_page("pairing_done", override_idle=False)
+            self._show_page("pairing_done")
         else:
             self.enclosure.activate_mouth_events()  # clears the display
 
@@ -426,21 +424,19 @@ class PairingSkill(MycroftSkill):
         self.pairing_code = None
         self.pairing_token = None
 
-    def _show_page(self, page_name_prefix: str, override_idle: bool = True):
+    def _show_page(self, page_name_prefix: str):
         """Display the correct pairing screen depending on the platform.
 
         Args:
             page_name_prefix: the first part of the QML file name is the same
                 irregardless of platform.
-            override_idle: whether or not the screen to show should override the
-                resting screen.
         """
         if self.platform == MARK_II:
             page_name = page_name_prefix + "_mark_ii.qml"
-            self.gui.replace_page(page_name, override_idle)
+            self.gui.replace_page(page_name, override_idle=True)
         else:
             page_name = page_name_prefix + "_scalable.qml"
-            self.gui.show_page(page_name, override_idle)
+            self.gui.show_page(page_name, override_idle=True)
 
     def shutdown(self):
         """Skill process termination steps."""
