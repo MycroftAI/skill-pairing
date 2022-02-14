@@ -56,7 +56,7 @@ Mycroft.Delegate {
             fontSize: 47
             fontStyle: "Bold"
             height: gridUnit * 3
-            text: "to Mycroft severs"
+            text: "to Mycroft servers"
             width: parent.width
         }
 
