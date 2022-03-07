@@ -165,7 +165,6 @@ class PairingSkill(MycroftSkill):
         if start_pairing:
             self.reload_skill = False  # Prevent restart during pairing
             self.enclosure.deactivate_mouth_events()
-            self._communicate_create_account_url()
             self._execute_pairing_sequence()
 
     def _check_pairing_in_progress(self):
@@ -181,23 +180,6 @@ class PairingSkill(MycroftSkill):
                 start_pairing = True
 
         return start_pairing
-
-    def _communicate_create_account_url(self):
-        """Tell the user the URL for creating an account and display it.
-
-        This should only happen once per pairing sequence.  If pairing is
-        restarted due to an error, this will be skipped.
-        """
-        if not self.account_creation_requested:
-            self.log.info("Communicating account URL to user")
-            self.account_creation_requested = True
-            if self.gui.connected:
-                self._show_page("create_account")
-            else:
-                self.enclosure.mouth_text("account.mycroft.ai      ")
-            self.speak_dialog("create.account")
-            mycroft.audio.wait_while_speaking()
-            time.sleep(30)
 
     def _execute_pairing_sequence(self):
         """Interact with the user to pair the device."""
