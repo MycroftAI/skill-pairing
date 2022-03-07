@@ -8,3 +8,6 @@ settings.json
 
 # Pycharm project files
 .idea/
+
+# Whiteout files
+.wh.*
