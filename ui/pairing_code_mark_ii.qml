@@ -51,7 +51,7 @@ Mycroft.Delegate {
             fontSize: 47
             fontStyle: "Bold"
             heightUnits: 3
-            text: "myroft.ai/pair"
+            text: "mycroft.ai/pair"
             textColor: "#2C3E50"
         }
     }
