@@ -14,21 +14,23 @@
 #
 """Mycroft skill to pair a device to the Selene backend."""
 import time
+from datetime import datetime
 from http import HTTPStatus
-from requests import HTTPError
 from threading import Timer, Lock
 from uuid import uuid4
 
+from requests import HTTPError
+
 import mycroft.audio
-from mycroft.api import DeviceApi, is_paired, check_remote_pairing
+from mycroft.api import DeviceApi, get_pantacor_device_id
 from mycroft.identity import IdentityManager
 from mycroft.messagebus.message import Message
 from mycroft.skills import intent_handler, MycroftSkill
 from mycroft.skills.intent_service import AdaptIntent
 
 
-MARK_II = 'mycroft_mark_2'
-ACTION_BUTTON_PLATFORMS = ('mycroft_mark_1', MARK_II)
+MARK_II = "mycroft_mark_2"
+ACTION_BUTTON_PLATFORMS = ("mycroft_mark_1", MARK_II)
 MAX_PAIRING_CODE_RETRIES = 30
 ACTIVATION_POLL_FREQUENCY = 10  # secs between checking server for activation
 ONE_MINUTE = 60
@@ -52,7 +54,7 @@ class PairingSkill(MycroftSkill):
         self.pairing_code_expiration = None
         self.state = str(uuid4())
         # TODO replace self.platform logic with call to enclosure capabilities
-        self.platform = self.config_core['enclosure'].get('platform', 'unknown')
+        self.platform = self.config_core["enclosure"].get("platform", "unknown")
         self.nato_alphabet = None
         self.mycroft_ready = False
         self.pairing_code_retry_cnt = 0
@@ -72,10 +74,12 @@ class PairingSkill(MycroftSkill):
         self.pairing_status_lock = Lock()
         self.pairing_in_progress = False
 
+        self.pantacor_device_id = None
+
     def initialize(self):
         """Register event handlers, setup language and platform dependent info."""
         self.add_event("mycroft.internet-ready", self.handle_internet_ready)
-        self.nato_alphabet = self.translate_namedvalues('codes')
+        self.nato_alphabet = self.translate_namedvalues("codes")
 
     @intent_handler(
         AdaptIntent("PairingIntent").require("PairingKeyword").require("DeviceKeyword")
@@ -171,9 +175,7 @@ class PairingSkill(MycroftSkill):
         """Determine if skill was invoked while pairing is in progress."""
         with self.pairing_status_lock:
             if self.pairing_in_progress:
-                self.log.debug(
-                    "Pairing in progress; ignoring call to handle_pairing"
-                )
+                self.log.debug("Pairing in progress; ignoring call to handle_pairing")
                 start_pairing = False
             else:
                 self.pairing_in_progress = True
@@ -199,20 +201,17 @@ class PairingSkill(MycroftSkill):
         five minutes.  If the API call does not succeed after five minutes
         abort the pairing process.
         """
-        self.log.info('Retrieving pairing code from device API...')
+        self.log.info("Retrieving pairing code from device API...")
         try:
             pairing_data = self.api.get_code(self.state)
-            self.pairing_code = pairing_data['code']
-            self.pairing_token = pairing_data['token']
-            self.pairing_code_expiration = (
-                    time.monotonic()
-                    + pairing_data['expiration']
-            )
+            self.pairing_code = pairing_data["code"]
+            self.pairing_token = pairing_data["token"]
+            self.pairing_code_expiration = time.monotonic() + pairing_data["expiration"]
         except Exception:
             self.log.exception("API call to retrieve pairing data failed")
             self._handle_pairing_data_retrieval_error()
         else:
-            self.log.info('Pairing code obtained: ' + self.pairing_code)
+            self.log.info("Pairing code obtained: " + self.pairing_code)
             self.pairing_code_retry_cnt = 0  # Reset counter on success
 
     def _handle_pairing_data_retrieval_error(self):
@@ -222,7 +221,7 @@ class PairingSkill(MycroftSkill):
             self.pairing_code_retry_cnt += 1
             self._restart_pairing(quiet=True)
         else:
-            self._end_pairing('connection.error')
+            self._end_pairing("connection.error")
             self.pairing_code_retry_cnt = 0
 
     def _communicate_pairing_url(self):
@@ -238,13 +237,13 @@ class PairingSkill(MycroftSkill):
     def _display_pairing_code(self):
         """Show the pairing code on the display, if one is available"""
         if self.gui.connected:
-            self.gui['pairingCode'] = self.pairing_code
+            self.gui["pairingCode"] = self.pairing_code
             self._show_page("pairing_code")
         else:
             self.enclosure.mouth_text(self.pairing_code)
 
     def _attempt_activation(self):
-        """Speak the pairing code if two """
+        """Speak the pairing code if two"""
         with self.device_activation_lock:
             if not self.device_activation_cancelled:
                 self._check_speak_code_interval()
@@ -260,7 +259,7 @@ class PairingSkill(MycroftSkill):
         """Speak pairing code."""
         self.log.debug("Speaking pairing code")
         pairing_code_utterance = map(self.nato_alphabet.get, self.pairing_code)
-        speak_data = dict(code='. '.join(pairing_code_utterance) + '.')
+        speak_data = dict(code=". ".join(pairing_code_utterance) + ".")
         # TODO - There is a bug in the Mark 1 where the pairing code display is
         # immediately cleared if we do not wait for this dialog to be spoken.
         self.speak_dialog("pairing.code", speak_data, wait=True)
@@ -282,7 +281,7 @@ class PairingSkill(MycroftSkill):
         HTTPError, the assumption is that the uer has not yet completed
         activation.
         """
-        self.log.debug('Checking for device activation')
+        self.log.debug("Checking for device activation")
         try:
             login = self.api.activate(self.state, self.pairing_token)
         except HTTPError:
@@ -353,7 +352,7 @@ class PairingSkill(MycroftSkill):
                     self.log.exception(log_msg)
                     self._restart_pairing()
             else:
-                self.log.info('Identity file saved.')
+                self.log.info("Identity file saved.")
                 break
 
     def _display_pairing_success(self):
@@ -368,9 +367,9 @@ class PairingSkill(MycroftSkill):
     def _speak_pairing_success(self):
         """Tell the user the device is paired."""
         if self.platform in ACTION_BUTTON_PLATFORMS:
-            paired_dialog = 'pairing.paired'
+            paired_dialog = "pairing.paired"
         else:
-            paired_dialog = 'pairing.paired.no.button'
+            paired_dialog = "pairing.paired.no.button"
         self.speak_dialog(paired_dialog, wait=True)
 
     def _end_pairing(self, error_dialog: str):
@@ -419,6 +418,54 @@ class PairingSkill(MycroftSkill):
         else:
             page_name = page_name_prefix + "_scalable.qml"
             self.gui.show_page(page_name, override_idle=True)
+
+    def handle_paired(self, _):
+        """Executes logic that is dependent on Selene pairing success."""
+        if self.config_core["enclosure"].get("packaging_type") == "pantacor":
+            self.schedule_repeating_event(
+                self.sync_with_pantacor,
+                when=datetime.now(),
+                frequency=60,
+                name="PantacorSync",
+            )
+
+    def sync_with_pantacor(self):
+        """Calls the Selene endpoint to sync the device with Pantacor.
+
+        Selene interacts with the Pantacor Fleet API to determine if the
+        device registration process is complete.  Upon registration success,
+        Selene stores Pantacor data regarding the device in its database.
+
+        There is no guarantee of when the device's registration with Pantacor will
+        be complete, so call the endpoint once per minute until success.
+        """
+        self.log.info(
+            "Device uses Pantacor for continuous deployment - syncing Pantacor config"
+        )
+        self.api = DeviceApi()
+        self.pantacor_device_id = get_pantacor_device_id()
+        if self.pantacor_device_id:
+            try:
+                self.api.sync_pantacor_config(self.pantacor_device_id)
+            except HTTPError as http_error:
+                http_status = http_error.response.status_code
+                if http_status == HTTPStatus.NOT_FOUND:
+                    self.log.warning(
+                        "Device not found on Pantacor - retrying in one minute"
+                    )
+                elif http_status == HTTPStatus.PRECONDITION_REQUIRED:
+                    self.log.warning(
+                        "Device exists on Pantacor servers but Pantacor setup is not"
+                        "complete - retrying in one minute"
+                    )
+            else:
+                self.log.info("Sync of Pantacor config succeeded")
+                self.cancel_scheduled_event("PantacorSync")
+        else:
+            self.log.warning(
+                "Attempt to obtain Pantacor Device ID from file system failed - "
+                "retrying in one minute"
+            )
 
     def shutdown(self):
         """Skill process termination steps."""
