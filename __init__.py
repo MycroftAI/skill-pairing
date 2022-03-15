@@ -79,6 +79,7 @@ class PairingSkill(MycroftSkill):
     def initialize(self):
         """Register event handlers, setup language and platform dependent info."""
         self.add_event("mycroft.internet-ready", self.handle_internet_ready)
+        self.add_event("server-connect.authenticated", self.handle_paired)
         self.nato_alphabet = self.translate_namedvalues("codes")
 
     @intent_handler(
@@ -422,12 +423,18 @@ class PairingSkill(MycroftSkill):
     def handle_paired(self, _):
         """Executes logic that is dependent on Selene pairing success."""
         if self.config_core["enclosure"].get("packaging_type") == "pantacor":
+            self.log.info(
+                "Device uses Pantacor for continuous deployment "
+                "- syncing Pantacor config"
+            )
             self.schedule_repeating_event(
                 self.sync_with_pantacor,
                 when=datetime.now(),
                 frequency=60,
                 name="PantacorSync",
             )
+        else:
+            self.log.info("Device does not uses Pantacor for continuous deployment.")
 
     def sync_with_pantacor(self):
         """Calls the Selene endpoint to sync the device with Pantacor.
